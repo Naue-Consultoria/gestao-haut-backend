@@ -9,6 +9,7 @@ import { treinamentosRouter } from './treinamentos.routes';
 import { investimentosRouter } from './investimentos.routes';
 import { comentariosRouter } from './comentarios.routes';
 import { dashboardRouter } from './dashboard.routes';
+import { reportsRouter } from './reports.routes';
 
 export const router = Router();
 
@@ -22,3 +23,4 @@ router.use('/treinamentos', treinamentosRouter);
 router.use('/investimentos', investimentosRouter);
 router.use('/comentarios', comentariosRouter);
 router.use('/dashboard', dashboardRouter);
+router.use('/reports', reportsRouter);

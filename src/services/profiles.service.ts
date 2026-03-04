@@ -36,6 +36,17 @@ export class ProfilesService {
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (authError) throw new Error(authError.message);
   }
+
+  async updateAvatarUrl(id: string, avatarUrl: string | null) {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
 }
 
 export const profilesService = new ProfilesService();

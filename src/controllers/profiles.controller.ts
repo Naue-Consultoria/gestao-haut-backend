@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../types/api';
 import { profilesService } from '../services/profiles.service';
 import { authService } from '../services/auth.service';
 import { supabaseAdmin } from '../config/supabase';
+import { env } from '../config/env';
 import { registerSchema, profileUpdateSchema, resetPasswordSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 
@@ -71,6 +72,65 @@ export class ProfilesController {
       sendSuccess(res, null);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
+    }
+  }
+
+  async uploadAvatar(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+
+      if (!file) {
+        sendError(res, 'Nenhum arquivo enviado', 400);
+        return;
+      }
+
+      const ext = file.originalname.split('.').pop() || 'jpg';
+      const filePath = `${id}.${ext}`;
+
+      // Remove old avatar if exists (ignore errors)
+      await supabaseAdmin.storage.from('avatars').remove([filePath]);
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('avatars')
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true,
+        });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      const publicUrl = `${env.SUPABASE_URL}/storage/v1/object/public/avatars/${filePath}`;
+
+      const data = await profilesService.updateAvatarUrl(id, publicUrl);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  async removeAvatar(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      // List and remove files matching this user id
+      const { data: files } = await supabaseAdmin.storage.from('avatars').list('', {
+        search: id,
+      });
+
+      if (files && files.length > 0) {
+        const filesToRemove = files
+          .filter(f => f.name.startsWith(id))
+          .map(f => f.name);
+        if (filesToRemove.length > 0) {
+          await supabaseAdmin.storage.from('avatars').remove(filesToRemove);
+        }
+      }
+
+      const data = await profilesService.updateAvatarUrl(id, null);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
     }
   }
 }

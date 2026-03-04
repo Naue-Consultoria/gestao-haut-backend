@@ -5,7 +5,7 @@ export class ReportsService {
     // Fetch broker profile
     const { data: broker } = await supabaseAdmin
       .from('profiles')
-      .select('id, name, team, role')
+      .select('id, name, team, role, avatar_url')
       .eq('id', brokerId)
       .single();
 
@@ -22,6 +22,7 @@ export class ReportsService {
       treinamentosResult,
       investimentosResult,
       comentarioResult,
+      planosAcaoResult,
     ] = await Promise.all([
       // Meta for the selected month
       supabaseAdmin
@@ -86,6 +87,13 @@ export class ReportsService {
         .eq('month', month)
         .eq('year', year)
         .maybeSingle(),
+      // Planos de acao for the selected month
+      supabaseAdmin
+        .from('planos_acao')
+        .select('texto, prazo, status')
+        .eq('broker_id', brokerId)
+        .eq('month', month)
+        .eq('year', year),
     ]);
 
     const meta = metaResult.data;
@@ -96,6 +104,7 @@ export class ReportsService {
     const treinamentos = treinamentosResult.data || [];
     const investimentos = investimentosResult.data || [];
     const comentario = comentarioResult.data;
+    const planosAcao = planosAcaoResult.data || [];
 
     // Build monthly VGV arrays (12 months)
     const monthlyVgv = Array(12).fill(0);
@@ -129,7 +138,7 @@ export class ReportsService {
     }
 
     return {
-      broker: { name: broker.name, team: broker.team },
+      broker: { name: broker.name, team: broker.team, avatar_url: broker.avatar_url || null },
       meta: meta ? {
         vgv_anual: meta.vgv_anual || 0,
         vgv_mensal: meta.vgv_mensal || 0,
@@ -182,6 +191,11 @@ export class ReportsService {
         leads: Number(i.leads),
       })),
       comentario: comentario ? { texto: comentario.texto, gestorName } : null,
+      planosAcao: planosAcao.map(p => ({
+        texto: p.texto,
+        prazo: p.prazo,
+        status: p.status,
+      })),
       monthlyVgv,
       monthlyMeta,
     };

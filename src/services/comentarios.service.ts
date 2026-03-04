@@ -36,6 +36,14 @@ export class ComentariosService {
     if (error) throw new Error(error.message);
     return data;
   }
+
+  async delete(id: string) {
+    const { error } = await supabaseAdmin
+      .from('comentarios')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
 }
 
 export const comentariosService = new ComentariosService();

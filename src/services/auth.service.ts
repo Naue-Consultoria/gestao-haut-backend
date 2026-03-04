@@ -1,8 +1,8 @@
-import { supabaseAdmin } from '../config/supabase';
+import { supabaseAdmin, supabaseAuth } from '../config/supabase';
 
 export class AuthService {
   async login(email: string, password: string) {
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     return data;
   }
@@ -16,11 +16,7 @@ export class AuthService {
     });
     if (error) throw new Error(error.message);
 
-    // Sign in to get the session
-    const { data: session, error: loginError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
-    if (loginError) throw new Error(loginError.message);
-
-    return { user: data.user, session: session.session };
+    return { user: data.user };
   }
 
   async getProfile(userId: string) {
@@ -40,6 +36,17 @@ export class AuthService {
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({ must_change_password: false })
+      .eq('id', userId);
+    if (profileError) throw new Error(profileError.message);
+  }
+
+  async resetPassword(userId: string, newPassword: string) {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
+    if (error) throw new Error(error.message);
+
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({ must_change_password: true })
       .eq('id', userId);
     if (profileError) throw new Error(profileError.message);
   }

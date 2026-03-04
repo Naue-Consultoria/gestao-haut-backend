@@ -31,6 +31,11 @@ export class ProfilesService {
     if (error) throw new Error(error.message);
     return data;
   }
+
+  async delete(id: string) {
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError) throw new Error(authError.message);
+  }
 }
 
 export const profilesService = new ProfilesService();

@@ -22,3 +22,7 @@ CREATE POLICY "Gestor can insert comentarios"
 CREATE POLICY "Gestor can update comentarios"
   ON comentarios FOR UPDATE TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'gestor'));
+
+CREATE POLICY "Gestor can delete comentarios"
+  ON comentarios FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'gestor'));

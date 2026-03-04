@@ -37,6 +37,14 @@ export class ComentariosController {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }
   }
+  async delete(req: AuthenticatedRequest, res: Response) {
+    try {
+      await comentariosService.delete(req.params.id);
+      sendSuccess(res, null);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
 }
 
 export const comentariosController = new ComentariosController();

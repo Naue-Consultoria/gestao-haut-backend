@@ -17,6 +17,10 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'Nova senha deve ter no mínimo 6 caracteres'),
 });
 
+export const resetPasswordSchema = z.object({
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+});
+
 export const profileUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
@@ -81,6 +85,14 @@ export const metaSchema = z.object({
 
 export const comentarioSchema = z.object({
   texto: z.string().min(1, 'Texto é obrigatório'),
+});
+
+export const planoAcaoSchema = z.object({
+  texto: z.string().min(1, 'Texto é obrigatório'),
+  prazo: z.string().default(''),
+  status: z.enum(['PLANEJADO', 'EM_ANDAMENTO', 'CONCLUIDO']).default('PLANEJADO'),
+  month: z.number().int().min(0).max(11),
+  year: z.number().int().min(2020),
 });
 
 export const monthYearQuery = z.object({

@@ -30,10 +30,7 @@ export class AuthController {
         team: body.team,
         role: body.role,
       });
-      sendSuccess(res, {
-        user: data.user,
-        session: { access_token: data.session?.access_token, refresh_token: data.session?.refresh_token },
-      }, 201);
+      sendSuccess(res, { user: data.user }, 201);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }

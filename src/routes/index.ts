@@ -8,6 +8,7 @@ import { negociosRouter } from './negocios.routes';
 import { treinamentosRouter } from './treinamentos.routes';
 import { investimentosRouter } from './investimentos.routes';
 import { comentariosRouter } from './comentarios.routes';
+import { planosAcaoRouter } from './planosAcao.routes';
 import { dashboardRouter } from './dashboard.routes';
 import { reportsRouter } from './reports.routes';
 
@@ -22,5 +23,6 @@ router.use('/negocios', negociosRouter);
 router.use('/treinamentos', treinamentosRouter);
 router.use('/investimentos', investimentosRouter);
 router.use('/comentarios', comentariosRouter);
+router.use('/planos-acao', planosAcaoRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/reports', reportsRouter);

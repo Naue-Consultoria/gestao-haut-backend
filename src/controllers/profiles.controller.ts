@@ -71,6 +71,7 @@ export class ProfilesController {
       await authService.resetPassword(req.params.id, body.password);
       sendSuccess(res, null);
     } catch (err: unknown) {
+      console.error('resetPassword error:', (err as Error).message);
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }
   }

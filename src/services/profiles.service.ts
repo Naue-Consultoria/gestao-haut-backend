@@ -5,6 +5,7 @@ export class ProfilesService {
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
+      .neq('email', 'gestor@haut.com')
       .order('name');
     if (error) throw new Error(error.message);
     return data;

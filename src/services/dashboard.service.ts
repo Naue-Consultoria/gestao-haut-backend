@@ -192,6 +192,69 @@ export class DashboardService {
     };
   }
 
+  async getConsolidatedEvolution(year: number) {
+    // Get all metas for the year (all brokers)
+    const { data: metas } = await supabaseAdmin
+      .from('metas')
+      .select('month, vgv_mensal')
+      .eq('year', year);
+
+    // Get all positivacoes for the year (all brokers)
+    const { data: positivacoes } = await supabaseAdmin
+      .from('positivacoes')
+      .select('month, vgv')
+      .eq('year', year);
+
+    const metaMap = new Map<number, number>();
+    for (const m of metas || []) {
+      metaMap.set(m.month, (metaMap.get(m.month) || 0) + (Number(m.vgv_mensal) || 0));
+    }
+
+    const realizadoMap = new Map<number, number>();
+    for (const p of positivacoes || []) {
+      realizadoMap.set(p.month, (realizadoMap.get(p.month) || 0) + Number(p.vgv));
+    }
+
+    return Array.from({ length: 12 }, (_, i) => ({
+      month: i,
+      meta: metaMap.get(i) || 0,
+      realizado: realizadoMap.get(i) || 0,
+    }));
+  }
+
+  async getYearlyEvolution(brokerId: string, year: number) {
+    // Get metas for all 12 months
+    const { data: metas } = await supabaseAdmin
+      .from('metas')
+      .select('month, vgv_mensal')
+      .eq('broker_id', brokerId)
+      .eq('year', year);
+
+    // Get positivacoes for all 12 months
+    const { data: positivacoes } = await supabaseAdmin
+      .from('positivacoes')
+      .select('month, vgv')
+      .eq('broker_id', brokerId)
+      .eq('year', year);
+
+    // Build monthly map
+    const metaMap = new Map<number, number>();
+    for (const m of metas || []) {
+      metaMap.set(m.month, Number(m.vgv_mensal) || 0);
+    }
+
+    const realizadoMap = new Map<number, number>();
+    for (const p of positivacoes || []) {
+      realizadoMap.set(p.month, (realizadoMap.get(p.month) || 0) + Number(p.vgv));
+    }
+
+    return Array.from({ length: 12 }, (_, i) => ({
+      month: i,
+      meta: metaMap.get(i) || 0,
+      realizado: realizadoMap.get(i) || 0,
+    }));
+  }
+
   async getRanking(month: number, year: number) {
     const brokers = await profilesService.getBrokers();
 

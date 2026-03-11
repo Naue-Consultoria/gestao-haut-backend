@@ -8,4 +8,5 @@ export const metasRouter = Router();
 metasRouter.use(authMiddleware);
 metasRouter.get('/:brokerId', (req, res) => metasController.getByBroker(req, res));
 metasRouter.get('/:brokerId/:month', (req, res) => metasController.getByBrokerAndMonth(req, res));
+metasRouter.put('/:brokerId/bulk-vgv', requireGestor, (req, res) => metasController.bulkUpsertVgv(req, res));
 metasRouter.put('/:brokerId/:month', requireGestor, (req, res) => metasController.upsert(req, res));

@@ -37,6 +37,19 @@ export class MetasController {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }
   }
+
+  async bulkUpsertVgv(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { vgv_anual, vgv_mensal } = req.body;
+      const year = parseInt(req.query.year as string) || getCurrentYear();
+      const vgvAnual = Number(vgv_anual) || 0;
+      const vgvMensal = Number(vgv_mensal) || 0;
+      const data = await metasService.bulkUpsertVgv(req.params.brokerId, year, vgvAnual, vgvMensal);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
 }
 
 export const metasController = new MetasController();

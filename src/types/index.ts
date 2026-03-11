@@ -88,6 +88,39 @@ export interface Investimento {
   created_at: string;
 }
 
+export interface Parceria {
+  id: string;
+  nome: string;
+  active: boolean;
+  created_at: string;
+  membros?: ParceriaMembro[];
+}
+
+export interface ParceriaMembro {
+  id: string;
+  parceria_id: string;
+  broker_id: string;
+  created_at: string;
+  broker?: Profile;
+}
+
+export interface MetaParceria {
+  id: string;
+  parceria_id: string;
+  month: number;
+  year: number;
+  vgv_anual: number;
+  vgv_mensal: number;
+  captacoes: number;
+  capt_exclusivas: number;
+  negocios: number;
+  treinamento: number;
+  investimento: number;
+  positivacao: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Comentario {
   id: string;
   broker_id: string;

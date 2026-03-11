@@ -14,6 +14,17 @@ export class ReportsController {
       sendError(res, (err as Error).message, 500);
     }
   }
+
+  async parceriaReport(req: AuthenticatedRequest, res: Response) {
+    try {
+      const month = parseInt(req.query.month as string) ?? getCurrentMonth();
+      const year = parseInt(req.query.year as string) || getCurrentYear();
+      const data = await reportsService.getParceriaReport(req.params.parceriaId, month, year);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
 }
 
 export const reportsController = new ReportsController();

@@ -10,6 +10,15 @@ export class TreinamentosService {
     return data;
   }
 
+  async listMultiple(brokerIds: string[], month?: number, year?: number) {
+    let query = supabaseAdmin.from('treinamentos').select('*').in('broker_id', brokerIds);
+    if (month !== undefined) query = query.eq('month', month);
+    if (year !== undefined) query = query.eq('year', year);
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   async create(brokerId: string, record: { month: number; year: number; atividade: string; local: string; horas: number }) {
     const { data, error } = await supabaseAdmin
       .from('treinamentos')
@@ -26,6 +35,15 @@ export class TreinamentosService {
       .delete()
       .eq('id', id)
       .eq('broker_id', brokerId);
+    if (error) throw new Error(error.message);
+  }
+
+  async deleteByPartner(id: string, brokerIds: string[]) {
+    const { error } = await supabaseAdmin
+      .from('treinamentos')
+      .delete()
+      .eq('id', id)
+      .in('broker_id', brokerIds);
     if (error) throw new Error(error.message);
   }
 }

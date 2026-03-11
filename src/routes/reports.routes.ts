@@ -7,3 +7,4 @@ export const reportsRouter = Router();
 
 reportsRouter.use(authMiddleware);
 reportsRouter.get('/broker/:brokerId', requireGestor, (req, res) => reportsController.brokerReport(req, res));
+reportsRouter.get('/parceria/:parceriaId', requireGestor, (req, res) => reportsController.parceriaReport(req, res));

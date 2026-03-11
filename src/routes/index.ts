@@ -11,6 +11,7 @@ import { comentariosRouter } from './comentarios.routes';
 import { planosAcaoRouter } from './planosAcao.routes';
 import { dashboardRouter } from './dashboard.routes';
 import { reportsRouter } from './reports.routes';
+import { parceriasRouter } from './parcerias.routes';
 
 export const router = Router();
 
@@ -26,3 +27,4 @@ router.use('/comentarios', comentariosRouter);
 router.use('/planos-acao', planosAcaoRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/reports', reportsRouter);
+router.use('/parcerias', parceriasRouter);

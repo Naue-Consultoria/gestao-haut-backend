@@ -15,6 +15,7 @@ parceriasRouter.get('/:id', (req, res) => parceriasController.getById(req, res))
 parceriasRouter.post('/', requireGestor, (req, res) => parceriasController.create(req, res));
 parceriasRouter.put('/:id', requireGestor, (req, res) => parceriasController.update(req, res));
 parceriasRouter.put('/:id/membros', requireGestor, (req, res) => parceriasController.updateMembros(req, res));
+parceriasRouter.delete('/comentarios/:id', requireGestor, (req, res) => parceriasController.deleteComentario(req, res));
 parceriasRouter.delete('/:id', requireGestor, (req, res) => parceriasController.delete(req, res));
 
 // Metas da parceria (gestor only para escrita)
@@ -22,3 +23,8 @@ parceriasRouter.get('/:id/metas', (req, res) => parceriasController.getMetas(req
 parceriasRouter.get('/:id/metas/:month', (req, res) => parceriasController.getMetaByMonth(req, res));
 parceriasRouter.put('/:id/metas/bulk-vgv', requireGestor, (req, res) => parceriasController.bulkUpsertVgv(req, res));
 parceriasRouter.put('/:id/metas/:month', requireGestor, (req, res) => parceriasController.upsertMeta(req, res));
+
+// Comentários da parceria (gestor only para escrita)
+parceriasRouter.get('/:id/comentarios', (req, res) => parceriasController.getComentarios(req, res));
+parceriasRouter.get('/:id/comentarios/:month', (req, res) => parceriasController.getComentarioByMonth(req, res));
+parceriasRouter.put('/:id/comentarios/:month', requireGestor, (req, res) => parceriasController.upsertComentario(req, res));

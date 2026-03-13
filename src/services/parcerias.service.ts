@@ -213,6 +213,52 @@ export class ParceriasService {
     return { updated: 12 - missingRows.length, created: missingRows.length };
   }
 
+  // --- Comentários da Parceria ---
+
+  async getComentarios(parceriaId: string) {
+    const { data, error } = await supabaseAdmin
+      .from('comentarios_parceria')
+      .select('*, gestor:profiles!comentarios_parceria_gestor_id_fkey(name)')
+      .eq('parceria_id', parceriaId)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async getComentarioByMonth(parceriaId: string, month: number, year: number) {
+    const { data, error } = await supabaseAdmin
+      .from('comentarios_parceria')
+      .select('*, gestor:profiles!comentarios_parceria_gestor_id_fkey(name)')
+      .eq('parceria_id', parceriaId)
+      .eq('month', month)
+      .eq('year', year)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async upsertComentario(parceriaId: string, gestorId: string, month: number, year: number, texto: string) {
+    const { data, error } = await supabaseAdmin
+      .from('comentarios_parceria')
+      .upsert(
+        { parceria_id: parceriaId, gestor_id: gestorId, month, year, texto },
+        { onConflict: 'parceria_id,month,year' }
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async deleteComentario(id: string) {
+    const { error } = await supabaseAdmin
+      .from('comentarios_parceria')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   // Helper: get broker IDs for a partnership
   async getMemberIds(parceriaId: string): Promise<string[]> {
     const { data, error } = await supabaseAdmin

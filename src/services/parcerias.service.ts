@@ -259,6 +259,61 @@ export class ParceriasService {
     if (error) throw new Error(error.message);
   }
 
+  // --- Planos de Ação da Parceria ---
+
+  async getPlanosAcao(parceriaId: string) {
+    const { data, error } = await supabaseAdmin
+      .from('planos_acao_parceria')
+      .select('*, gestor:profiles!planos_acao_parceria_gestor_id_fkey(name)')
+      .eq('parceria_id', parceriaId)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async getPlanosAcaoByMonth(parceriaId: string, month: number, year: number) {
+    const { data, error } = await supabaseAdmin
+      .from('planos_acao_parceria')
+      .select('*, gestor:profiles!planos_acao_parceria_gestor_id_fkey(name)')
+      .eq('parceria_id', parceriaId)
+      .eq('month', month)
+      .eq('year', year)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async createPlanoAcao(parceriaId: string, gestorId: string, data: { texto: string; prazo: string; status: string; month: number; year: number }) {
+    const { data: result, error } = await supabaseAdmin
+      .from('planos_acao_parceria')
+      .insert({ parceria_id: parceriaId, gestor_id: gestorId, ...data })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return result;
+  }
+
+  async updatePlanoAcao(id: string, data: { texto?: string; prazo?: string; status?: string }) {
+    const { data: result, error } = await supabaseAdmin
+      .from('planos_acao_parceria')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return result;
+  }
+
+  async deletePlanoAcao(id: string) {
+    const { error } = await supabaseAdmin
+      .from('planos_acao_parceria')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   // Helper: get broker IDs for a partnership
   async getMemberIds(parceriaId: string): Promise<string[]> {
     const { data, error } = await supabaseAdmin

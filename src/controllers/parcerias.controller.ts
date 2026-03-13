@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { parceriasService } from '../services/parcerias.service';
-import { metaSchema, comentarioSchema } from '../utils/validation';
+import { metaSchema, comentarioSchema, planoAcaoSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError, getCurrentYear } from '../utils/helpers';
 
 export class ParceriasController {
@@ -170,6 +170,57 @@ export class ParceriasController {
     try {
       await parceriasService.deleteComentario(req.params.id);
       sendSuccess(res, null);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  // --- Planos de Ação ---
+
+  async getPlanosAcao(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await parceriasService.getPlanosAcao(req.params.id);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  async getPlanosAcaoByMonth(req: AuthenticatedRequest, res: Response) {
+    try {
+      const month = parseInt(req.params.month, 10);
+      const year = parseInt(req.query.year as string) || getCurrentYear();
+      const data = await parceriasService.getPlanosAcaoByMonth(req.params.id, month, year);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  async createPlanoAcao(req: AuthenticatedRequest, res: Response) {
+    try {
+      const body = planoAcaoSchema.parse(req.body);
+      const data = await parceriasService.createPlanoAcao(req.params.id, req.userId!, body);
+      sendSuccess(res, data, 201);
+    } catch (err: unknown) {
+      try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
+    }
+  }
+
+  async updatePlanoAcao(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { texto, prazo, status } = req.body;
+      const data = await parceriasService.updatePlanoAcao(req.params.id, { texto, prazo, status });
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  async deletePlanoAcao(req: AuthenticatedRequest, res: Response) {
+    try {
+      await parceriasService.deletePlanoAcao(req.params.id);
+      sendSuccess(res, { message: 'Plano de ação excluído' });
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);
     }

@@ -16,6 +16,8 @@ parceriasRouter.post('/', requireGestor, (req, res) => parceriasController.creat
 parceriasRouter.put('/:id', requireGestor, (req, res) => parceriasController.update(req, res));
 parceriasRouter.put('/:id/membros', requireGestor, (req, res) => parceriasController.updateMembros(req, res));
 parceriasRouter.delete('/comentarios/:id', requireGestor, (req, res) => parceriasController.deleteComentario(req, res));
+parceriasRouter.delete('/planos-acao/:id', requireGestor, (req, res) => parceriasController.deletePlanoAcao(req, res));
+parceriasRouter.put('/planos-acao/:id', requireGestor, (req, res) => parceriasController.updatePlanoAcao(req, res));
 parceriasRouter.delete('/:id', requireGestor, (req, res) => parceriasController.delete(req, res));
 
 // Metas da parceria (gestor only para escrita)
@@ -28,3 +30,8 @@ parceriasRouter.put('/:id/metas/:month', requireGestor, (req, res) => parceriasC
 parceriasRouter.get('/:id/comentarios', (req, res) => parceriasController.getComentarios(req, res));
 parceriasRouter.get('/:id/comentarios/:month', (req, res) => parceriasController.getComentarioByMonth(req, res));
 parceriasRouter.put('/:id/comentarios/:month', requireGestor, (req, res) => parceriasController.upsertComentario(req, res));
+
+// Planos de Ação da parceria (gestor only para escrita)
+parceriasRouter.get('/:id/planos-acao', (req, res) => parceriasController.getPlanosAcao(req, res));
+parceriasRouter.get('/:id/planos-acao/:month', (req, res) => parceriasController.getPlanosAcaoByMonth(req, res));
+parceriasRouter.post('/:id/planos-acao', requireGestor, (req, res) => parceriasController.createPlanoAcao(req, res));

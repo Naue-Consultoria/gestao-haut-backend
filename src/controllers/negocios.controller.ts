@@ -33,7 +33,9 @@ export class NegociosController {
   async create(req: AuthenticatedRequest, res: Response) {
     try {
       const body = negocioSchema.parse(req.body);
-      const data = await negociosService.create(req.userId!, body);
+      const { broker_id, ...record } = body;
+      const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
+      const data = await negociosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
@@ -42,11 +44,15 @@ export class NegociosController {
 
   async delete(req: AuthenticatedRequest, res: Response) {
     try {
-      const partnerIds = await getPartnerIds(req.userId!);
-      if (partnerIds) {
-        await negociosService.deleteByPartner(req.params.id, partnerIds);
+      if (req.userRole === 'gestor') {
+        await negociosService.deleteById(req.params.id);
       } else {
-        await negociosService.delete(req.params.id, req.userId!);
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          await negociosService.deleteByPartner(req.params.id, partnerIds);
+        } else {
+          await negociosService.delete(req.params.id, req.userId!);
+        }
       }
       sendSuccess(res, { message: 'Registro excluído' });
     } catch (err: unknown) {

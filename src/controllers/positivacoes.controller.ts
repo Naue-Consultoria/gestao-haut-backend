@@ -34,7 +34,9 @@ export class PositivacoesController {
   async create(req: AuthenticatedRequest, res: Response) {
     try {
       const body = positivacaoSchema.parse(req.body);
-      const data = await positivacoesService.create(req.userId!, body);
+      const { broker_id, ...record } = body;
+      const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
+      const data = await positivacoesService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
@@ -43,11 +45,15 @@ export class PositivacoesController {
 
   async delete(req: AuthenticatedRequest, res: Response) {
     try {
-      const partnerIds = await getPartnerIds(req.userId!);
-      if (partnerIds) {
-        await positivacoesService.deleteByPartner(req.params.id, partnerIds);
+      if (req.userRole === 'gestor') {
+        await positivacoesService.deleteById(req.params.id);
       } else {
-        await positivacoesService.delete(req.params.id, req.userId!);
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          await positivacoesService.deleteByPartner(req.params.id, partnerIds);
+        } else {
+          await positivacoesService.delete(req.params.id, req.userId!);
+        }
       }
       sendSuccess(res, { message: 'Registro excluído' });
     } catch (err: unknown) {

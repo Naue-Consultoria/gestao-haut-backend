@@ -33,7 +33,9 @@ export class TreinamentosController {
   async create(req: AuthenticatedRequest, res: Response) {
     try {
       const body = treinamentoSchema.parse(req.body);
-      const data = await treinamentosService.create(req.userId!, body);
+      const { broker_id, ...record } = body;
+      const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
+      const data = await treinamentosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
@@ -42,11 +44,15 @@ export class TreinamentosController {
 
   async delete(req: AuthenticatedRequest, res: Response) {
     try {
-      const partnerIds = await getPartnerIds(req.userId!);
-      if (partnerIds) {
-        await treinamentosService.deleteByPartner(req.params.id, partnerIds);
+      if (req.userRole === 'gestor') {
+        await treinamentosService.deleteById(req.params.id);
       } else {
-        await treinamentosService.delete(req.params.id, req.userId!);
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          await treinamentosService.deleteByPartner(req.params.id, partnerIds);
+        } else {
+          await treinamentosService.delete(req.params.id, req.userId!);
+        }
       }
       sendSuccess(res, { message: 'Registro excluído' });
     } catch (err: unknown) {

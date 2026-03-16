@@ -29,6 +29,14 @@ export class InvestimentosService {
     return data;
   }
 
+  async deleteById(id: string) {
+    const { error } = await supabaseAdmin
+      .from('investimentos')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   async delete(id: string, brokerId: string) {
     const { error } = await supabaseAdmin
       .from('investimentos')

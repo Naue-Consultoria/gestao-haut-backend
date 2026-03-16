@@ -36,6 +36,7 @@ export const positivacaoSchema = z.object({
   parceria: z.string().default('NÃO'),
   vgv: z.number().min(0).default(0),
   comissao: z.number().min(0).default(0),
+  broker_id: z.string().uuid().optional(),
 });
 
 export const captacaoSchema = z.object({
@@ -45,6 +46,7 @@ export const captacaoSchema = z.object({
   exclusivo: z.string().default('NÃO'),
   origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']).default('RELACIONAMENTO'),
   vgv: z.number().min(0).default(0),
+  broker_id: z.string().uuid().optional(),
 });
 
 export const negocioSchema = z.object({
@@ -53,6 +55,7 @@ export const negocioSchema = z.object({
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
   origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']).default('RELACIONAMENTO'),
   vgv: z.number().min(0).default(0),
+  broker_id: z.string().uuid().optional(),
 });
 
 export const treinamentoSchema = z.object({
@@ -61,6 +64,7 @@ export const treinamentoSchema = z.object({
   atividade: z.string().min(1, 'Atividade é obrigatória'),
   local: z.string().default(''),
   horas: z.number().min(0).default(0),
+  broker_id: z.string().uuid().optional(),
 });
 
 export const investimentoSchema = z.object({
@@ -70,6 +74,7 @@ export const investimentoSchema = z.object({
   produto: z.string().default(''),
   valor: z.number().min(0).default(0),
   leads: z.number().int().min(0).default(0),
+  broker_id: z.string().uuid().optional(),
 });
 
 export const metaSchema = z.object({

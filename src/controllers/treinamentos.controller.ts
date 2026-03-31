@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { treinamentosService } from '../services/treinamentos.service';
 import { parceriasService } from '../services/parcerias.service';
-import { treinamentoSchema, monthYearQuery } from '../utils/validation';
+import { treinamentoSchema, treinamentoUpdateSchema, monthYearQuery } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 
 async function getPartnerIds(userId: string): Promise<string[] | null> {
@@ -37,6 +37,26 @@ export class TreinamentosController {
       const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
       const data = await treinamentosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
+    } catch (err: unknown) {
+      try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
+    }
+  }
+
+  async update(req: AuthenticatedRequest, res: Response) {
+    try {
+      const record = treinamentoUpdateSchema.parse(req.body);
+      let data;
+      if (req.userRole === 'gestor') {
+        data = await treinamentosService.update(req.params.id, record);
+      } else {
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          data = await treinamentosService.updateByPartner(req.params.id, partnerIds, record);
+        } else {
+          data = await treinamentosService.updateByBroker(req.params.id, req.userId!, record);
+        }
+      }
+      sendSuccess(res, data);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }

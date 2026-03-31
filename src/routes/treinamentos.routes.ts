@@ -7,4 +7,5 @@ export const treinamentosRouter = Router();
 treinamentosRouter.use(authMiddleware);
 treinamentosRouter.get('/', (req, res) => treinamentosController.list(req, res));
 treinamentosRouter.post('/', (req, res) => treinamentosController.create(req, res));
+treinamentosRouter.put('/:id', (req, res) => treinamentosController.update(req, res));
 treinamentosRouter.delete('/:id', (req, res) => treinamentosController.delete(req, res));

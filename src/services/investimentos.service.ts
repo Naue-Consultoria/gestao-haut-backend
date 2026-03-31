@@ -29,6 +29,41 @@ export class InvestimentosService {
     return data;
   }
 
+  async update(id: string, record: { tipo?: string; produto?: string; valor?: number; leads?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('investimentos')
+      .update(record)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async updateByBroker(id: string, brokerId: string, record: { tipo?: string; produto?: string; valor?: number; leads?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('investimentos')
+      .update(record)
+      .eq('id', id)
+      .eq('broker_id', brokerId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async updateByPartner(id: string, brokerIds: string[], record: { tipo?: string; produto?: string; valor?: number; leads?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('investimentos')
+      .update(record)
+      .eq('id', id)
+      .in('broker_id', brokerIds)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   async deleteById(id: string) {
     const { error } = await supabaseAdmin
       .from('investimentos')

@@ -29,6 +29,41 @@ export class CaptacoesService {
     return data;
   }
 
+  async update(id: string, record: { oportunidade?: string; exclusivo?: string; origem?: string; vgv?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('captacoes')
+      .update(record)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async updateByBroker(id: string, brokerId: string, record: { oportunidade?: string; exclusivo?: string; origem?: string; vgv?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('captacoes')
+      .update(record)
+      .eq('id', id)
+      .eq('broker_id', brokerId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async updateByPartner(id: string, brokerIds: string[], record: { oportunidade?: string; exclusivo?: string; origem?: string; vgv?: number }) {
+    const { data, error } = await supabaseAdmin
+      .from('captacoes')
+      .update(record)
+      .eq('id', id)
+      .in('broker_id', brokerIds)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   async deleteById(id: string) {
     const { error } = await supabaseAdmin
       .from('captacoes')

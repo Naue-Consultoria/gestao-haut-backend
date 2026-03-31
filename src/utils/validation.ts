@@ -77,6 +77,45 @@ export const investimentoSchema = z.object({
   broker_id: z.string().uuid().optional(),
 });
 
+export const investimentoUpdateSchema = z.object({
+  tipo: z.enum(['PORTAL', 'PATROCINADO', 'CURSO', 'NETWORKING', 'PRESENTE_CLIENTE', 'BRINDE', 'OUTRO']),
+  produto: z.string(),
+  valor: z.number().min(0),
+  leads: z.number().int().min(0),
+});
+
+export const treinamentoUpdateSchema = z.object({
+  atividade: z.string().min(1, 'Atividade é obrigatória'),
+  local: z.string(),
+  horas: z.number().min(0),
+});
+
+export const negocioUpdateSchema = z.object({
+  oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']),
+  vgv: z.number().min(0),
+});
+
+export const captacaoUpdateSchema = z.object({
+  oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
+  exclusivo: z.string(),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']),
+  vgv: z.number().min(0),
+});
+
+export const positivacaoUpdateSchema = z.object({
+  oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
+  parceria: z.string(),
+  vgv: z.number().min(0),
+  comissao: z.number().min(0),
+});
+
+export const planoAcaoUpdateSchema = z.object({
+  texto: z.string().min(1, 'Texto é obrigatório'),
+  prazo: z.string(),
+  status: z.enum(['PLANEJADO', 'EM_ANDAMENTO', 'CONCLUIDO']),
+});
+
 export const metaSchema = z.object({
   vgv_anual: z.number().min(0).default(0),
   vgv_mensal: z.number().min(0).default(0),

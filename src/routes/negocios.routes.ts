@@ -7,4 +7,5 @@ export const negociosRouter = Router();
 negociosRouter.use(authMiddleware);
 negociosRouter.get('/', (req, res) => negociosController.list(req, res));
 negociosRouter.post('/', (req, res) => negociosController.create(req, res));
+negociosRouter.put('/:id', (req, res) => negociosController.update(req, res));
 negociosRouter.delete('/:id', (req, res) => negociosController.delete(req, res));

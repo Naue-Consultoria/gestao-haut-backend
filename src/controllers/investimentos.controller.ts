@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { investimentosService } from '../services/investimentos.service';
 import { parceriasService } from '../services/parcerias.service';
-import { investimentoSchema, monthYearQuery } from '../utils/validation';
+import { investimentoSchema, investimentoUpdateSchema, monthYearQuery } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 
 async function getPartnerIds(userId: string): Promise<string[] | null> {
@@ -37,6 +37,26 @@ export class InvestimentosController {
       const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
       const data = await investimentosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
+    } catch (err: unknown) {
+      try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
+    }
+  }
+
+  async update(req: AuthenticatedRequest, res: Response) {
+    try {
+      const record = investimentoUpdateSchema.parse(req.body);
+      let data;
+      if (req.userRole === 'gestor') {
+        data = await investimentosService.update(req.params.id, record);
+      } else {
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          data = await investimentosService.updateByPartner(req.params.id, partnerIds, record);
+        } else {
+          data = await investimentosService.updateByBroker(req.params.id, req.userId!, record);
+        }
+      }
+      sendSuccess(res, data);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }

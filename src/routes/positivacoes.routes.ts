@@ -7,4 +7,5 @@ export const positivacoesRouter = Router();
 positivacoesRouter.use(authMiddleware);
 positivacoesRouter.get('/', (req, res) => positivacoesController.list(req, res));
 positivacoesRouter.post('/', (req, res) => positivacoesController.create(req, res));
+positivacoesRouter.put('/:id', (req, res) => positivacoesController.update(req, res));
 positivacoesRouter.delete('/:id', (req, res) => positivacoesController.delete(req, res));

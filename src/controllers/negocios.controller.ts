@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { negociosService } from '../services/negocios.service';
 import { parceriasService } from '../services/parcerias.service';
-import { negocioSchema, monthYearQuery } from '../utils/validation';
+import { negocioSchema, negocioUpdateSchema, monthYearQuery } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 
 async function getPartnerIds(userId: string): Promise<string[] | null> {
@@ -37,6 +37,26 @@ export class NegociosController {
       const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
       const data = await negociosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
+    } catch (err: unknown) {
+      try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
+    }
+  }
+
+  async update(req: AuthenticatedRequest, res: Response) {
+    try {
+      const record = negocioUpdateSchema.parse(req.body);
+      let data;
+      if (req.userRole === 'gestor') {
+        data = await negociosService.update(req.params.id, record);
+      } else {
+        const partnerIds = await getPartnerIds(req.userId!);
+        if (partnerIds) {
+          data = await negociosService.updateByPartner(req.params.id, partnerIds, record);
+        } else {
+          data = await negociosService.updateByBroker(req.params.id, req.userId!, record);
+        }
+      }
+      sendSuccess(res, data);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }

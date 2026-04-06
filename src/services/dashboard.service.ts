@@ -2,71 +2,61 @@ import { supabaseAdmin } from '../config/supabase';
 import { profilesService } from './profiles.service';
 import { parceriasService } from './parcerias.service';
 
-// Helper: aggregate activity data for multiple broker IDs
+// Helper: aggregate activity data for multiple broker IDs (optimized: 5 queries total using .in())
 async function aggregateBrokerData(brokerIds: string[], month: number, year: number) {
-  const results = await Promise.all(brokerIds.map(async (brokerId) => {
-    const [positivacoes, captacoes, negocios, treinamentos, investimentos] = await Promise.all([
-      supabaseAdmin.from('positivacoes').select('vgv, comissao').eq('broker_id', brokerId).eq('month', month).eq('year', year),
-      supabaseAdmin.from('captacoes').select('exclusivo').eq('broker_id', brokerId).eq('month', month).eq('year', year),
-      supabaseAdmin.from('negocios').select('vgv').eq('broker_id', brokerId).eq('month', month).eq('year', year),
-      supabaseAdmin.from('treinamentos').select('horas').eq('broker_id', brokerId).eq('month', month).eq('year', year),
-      supabaseAdmin.from('investimentos').select('valor').eq('broker_id', brokerId).eq('month', month).eq('year', year),
-    ]);
-    return { positivacoes: positivacoes.data || [], captacoes: captacoes.data || [], negocios: negocios.data || [], treinamentos: treinamentos.data || [], investimentos: investimentos.data || [] };
-  }));
+  const [positivacoes, captacoes, negocios, treinamentos, investimentos] = await Promise.all([
+    supabaseAdmin.from('positivacoes').select('vgv, comissao').in('broker_id', brokerIds).eq('month', month).eq('year', year),
+    supabaseAdmin.from('captacoes').select('exclusivo').in('broker_id', brokerIds).eq('month', month).eq('year', year),
+    supabaseAdmin.from('negocios').select('vgv').in('broker_id', brokerIds).eq('month', month).eq('year', year),
+    supabaseAdmin.from('treinamentos').select('horas').in('broker_id', brokerIds).eq('month', month).eq('year', year),
+    supabaseAdmin.from('investimentos').select('valor').in('broker_id', brokerIds).eq('month', month).eq('year', year),
+  ]);
 
-  const all = {
-    positivacoes: results.flatMap(r => r.positivacoes),
-    captacoes: results.flatMap(r => r.captacoes),
-    negocios: results.flatMap(r => r.negocios),
-    treinamentos: results.flatMap(r => r.treinamentos),
-    investimentos: results.flatMap(r => r.investimentos),
-  };
+  const p = positivacoes.data || [];
+  const c = captacoes.data || [];
+  const n = negocios.data || [];
+  const t = treinamentos.data || [];
+  const inv = investimentos.data || [];
 
   return {
-    vgvRealizado: all.positivacoes.reduce((s, p) => s + Number(p.vgv), 0),
-    comissaoTotal: all.positivacoes.reduce((s, p) => s + Number(p.comissao), 0),
-    positivacoesCount: all.positivacoes.length,
-    captacoesCount: all.captacoes.length,
-    captExclusivas: all.captacoes.filter(c => c.exclusivo === 'SIM').length,
-    negociosCount: all.negocios.length,
-    negociosVGV: all.negocios.reduce((s, n) => s + Number(n.vgv), 0),
-    treinamentoHoras: all.treinamentos.reduce((s, t) => s + Number(t.horas), 0),
-    investimentoValor: all.investimentos.reduce((s, i) => s + Number(i.valor), 0),
+    vgvRealizado: p.reduce((s, r) => s + Number(r.vgv), 0),
+    comissaoTotal: p.reduce((s, r) => s + Number(r.comissao), 0),
+    positivacoesCount: p.length,
+    captacoesCount: c.length,
+    captExclusivas: c.filter(r => r.exclusivo === 'SIM').length,
+    negociosCount: n.length,
+    negociosVGV: n.reduce((s, r) => s + Number(r.vgv), 0),
+    treinamentoHoras: t.reduce((s, r) => s + Number(r.horas), 0),
+    investimentoValor: inv.reduce((s, r) => s + Number(r.valor), 0),
   };
 }
 
-// Helper: aggregate activity data for multiple broker IDs across all months of a year
+// Helper: aggregate activity data for multiple broker IDs across all months of a year (optimized: 5 queries total)
 async function aggregateBrokerDataYearly(brokerIds: string[], year: number) {
-  const results = await Promise.all(brokerIds.map(async (brokerId) => {
-    const [positivacoes, captacoes, negocios, treinamentos, investimentos] = await Promise.all([
-      supabaseAdmin.from('positivacoes').select('vgv, comissao').eq('broker_id', brokerId).eq('year', year),
-      supabaseAdmin.from('captacoes').select('exclusivo').eq('broker_id', brokerId).eq('year', year),
-      supabaseAdmin.from('negocios').select('vgv').eq('broker_id', brokerId).eq('year', year),
-      supabaseAdmin.from('treinamentos').select('horas').eq('broker_id', brokerId).eq('year', year),
-      supabaseAdmin.from('investimentos').select('valor').eq('broker_id', brokerId).eq('year', year),
-    ]);
-    return { positivacoes: positivacoes.data || [], captacoes: captacoes.data || [], negocios: negocios.data || [], treinamentos: treinamentos.data || [], investimentos: investimentos.data || [] };
-  }));
+  const [positivacoes, captacoes, negocios, treinamentos, investimentos] = await Promise.all([
+    supabaseAdmin.from('positivacoes').select('vgv, comissao').in('broker_id', brokerIds).eq('year', year),
+    supabaseAdmin.from('captacoes').select('exclusivo').in('broker_id', brokerIds).eq('year', year),
+    supabaseAdmin.from('negocios').select('vgv').in('broker_id', brokerIds).eq('year', year),
+    supabaseAdmin.from('treinamentos').select('horas').in('broker_id', brokerIds).eq('year', year),
+    supabaseAdmin.from('investimentos').select('valor').in('broker_id', brokerIds).eq('year', year),
+  ]);
 
-  const all = {
-    positivacoes: results.flatMap(r => r.positivacoes),
-    captacoes: results.flatMap(r => r.captacoes),
-    negocios: results.flatMap(r => r.negocios),
-    treinamentos: results.flatMap(r => r.treinamentos),
-    investimentos: results.flatMap(r => r.investimentos),
-  };
+  const p = positivacoes.data || [];
+  const c = captacoes.data || [];
+  const n = negocios.data || [];
+  const t = treinamentos.data || [];
+  const inv = investimentos.data || [];
 
   return {
-    vgvRealizado: all.positivacoes.reduce((s, p) => s + Number(p.vgv), 0),
-    comissaoTotal: all.positivacoes.reduce((s, p) => s + Number(p.comissao), 0),
-    positivacoesCount: all.positivacoes.length,
-    captacoesCount: all.captacoes.length,
-    captExclusivas: all.captacoes.filter(c => c.exclusivo === 'SIM').length,
-    negociosCount: all.negocios.length,
-    negociosVGV: all.negocios.reduce((s, n) => s + Number(n.vgv), 0),
-    treinamentoHoras: all.treinamentos.reduce((s, t) => s + Number(t.horas), 0),
-    investimentoValor: all.investimentos.reduce((s, i) => s + Number(i.valor), 0),
+    vgvRealizado: p.reduce((s, r) => s + Number(r.vgv), 0),
+    comissaoTotal: p.reduce((s, r) => s + Number(r.comissao), 0),
+    positivacoesCount: p.length,
+    captacoesCount: c.length,
+    captExclusivas: c.filter(r => r.exclusivo === 'SIM').length,
+    negociosCount: n.length,
+    negociosVGV: n.reduce((s, r) => s + Number(r.vgv), 0),
+    treinamentoHoras: t.reduce((s, r) => s + Number(r.horas), 0),
+    investimentoValor: inv.reduce((s, r) => s + Number(r.valor), 0),
   };
 }
 
@@ -230,29 +220,18 @@ export class DashboardService {
     const parceria = await parceriasService.getByBrokerId(brokerId);
 
     if (parceria) {
-      // Partnership mode: aggregate all members
+      // Partnership mode: aggregate all members - optimized: parallel queries
       const memberIds = (parceria.parceria_membros || []).map((m: any) => m.broker_id);
       const memberNames = (parceria.parceria_membros || []).map((m: any) => m.broker?.name).filter(Boolean);
 
-      const { data: meta } = await supabaseAdmin
-        .from('metas_parceria')
-        .select('*')
-        .eq('parceria_id', parceria.id)
-        .eq('month', month)
-        .eq('year', year)
-        .maybeSingle();
+      const [metaResult, activity, comentariosResult] = await Promise.all([
+        supabaseAdmin.from('metas_parceria').select('*').eq('parceria_id', parceria.id).eq('month', month).eq('year', year).maybeSingle(),
+        aggregateBrokerData(memberIds, month, year),
+        supabaseAdmin.from('comentarios').select('texto').in('broker_id', memberIds).eq('month', month).eq('year', year),
+      ]);
 
-      const activity = await aggregateBrokerData(memberIds, month, year);
-
-      // Get comments for any member of the partnership
-      const { data: comentarios } = await supabaseAdmin
-        .from('comentarios')
-        .select('texto')
-        .in('broker_id', memberIds)
-        .eq('month', month)
-        .eq('year', year);
-
-      const comentario = comentarios && comentarios.length > 0 ? comentarios[0].texto : undefined;
+      const meta = metaResult.data;
+      const comentario = comentariosResult.data && comentariosResult.data.length > 0 ? comentariosResult.data[0].texto : undefined;
 
       return {
         broker: {
@@ -281,47 +260,23 @@ export class DashboardService {
       };
     }
 
-    // Solo broker - original logic
-    const { data: broker } = await supabaseAdmin
-      .from('profiles')
-      .select('id, name, team')
-      .eq('id', brokerId)
-      .single();
+    // Solo broker - optimized: parallel queries
+    const [brokerResult, metaResult, activity, comentarioResult] = await Promise.all([
+      supabaseAdmin.from('profiles').select('id, name, team').eq('id', brokerId).single(),
+      supabaseAdmin.from('metas').select('*').eq('broker_id', brokerId).eq('month', month).eq('year', year).maybeSingle(),
+      aggregateBrokerData([brokerId], month, year),
+      supabaseAdmin.from('comentarios').select('texto').eq('broker_id', brokerId).eq('month', month).eq('year', year).maybeSingle(),
+    ]);
 
+    const broker = brokerResult.data;
     if (!broker) throw new Error('Corretor não encontrado');
-
-    const { data: meta } = await supabaseAdmin
-      .from('metas')
-      .select('*')
-      .eq('broker_id', brokerId)
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
-
-    const activity = await aggregateBrokerData([brokerId], month, year);
-
-    const { data: positivacoes } = await supabaseAdmin
-      .from('positivacoes')
-      .select('vgv, comissao')
-      .eq('broker_id', brokerId)
-      .eq('month', month)
-      .eq('year', year);
-
-    const vgvRealizado = (positivacoes || []).reduce((s, p) => s + Number(p.vgv), 0);
-    const comissaoTotal = (positivacoes || []).reduce((s, p) => s + Number(p.comissao), 0);
-
-    const { data: comentario } = await supabaseAdmin
-      .from('comentarios')
-      .select('texto')
-      .eq('broker_id', brokerId)
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
+    const meta = metaResult.data;
+    const comentario = comentarioResult.data;
 
     return {
       broker,
       isParceria: false,
-      vgvRealizado,
+      vgvRealizado: activity.vgvRealizado,
       metaVGVMensal: meta?.vgv_mensal || 0,
       captacoes: activity.captacoesCount,
       metaCaptacoes: meta?.captacoes || 0,
@@ -335,7 +290,7 @@ export class DashboardService {
       metaInvestimento: meta?.investimento || 0,
       positivacoes: activity.positivacoesCount,
       metaPositivacao: meta?.positivacao || 0,
-      comissaoTotal,
+      comissaoTotal: activity.comissaoTotal,
       comentario: comentario?.texto,
     };
   }
@@ -517,28 +472,26 @@ export class DashboardService {
   async getIndividualYearly(brokerId: string, year: number) {
     const parceria = await parceriasService.getByBrokerId(brokerId);
 
+    const reduceMetaTotals = (metas: any[]) => metas.reduce((acc, m) => ({
+      vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
+      captacoes: acc.captacoes + (Number(m.captacoes) || 0),
+      capt_exclusivas: acc.capt_exclusivas + (Number(m.capt_exclusivas) || 0),
+      negocios: acc.negocios + (Number(m.negocios) || 0),
+      treinamento: acc.treinamento + (Number(m.treinamento) || 0),
+      investimento: acc.investimento + (Number(m.investimento) || 0),
+      positivacao: acc.positivacao + (Number(m.positivacao) || 0),
+    }), { vgv_mensal: 0, captacoes: 0, capt_exclusivas: 0, negocios: 0, treinamento: 0, investimento: 0, positivacao: 0 });
+
     if (parceria) {
       const memberIds = (parceria.parceria_membros || []).map((m: any) => m.broker_id);
       const memberNames = (parceria.parceria_membros || []).map((m: any) => m.broker?.name).filter(Boolean);
 
-      // Sum metas across all 12 months
-      const { data: metas } = await supabaseAdmin
-        .from('metas_parceria')
-        .select('*')
-        .eq('parceria_id', parceria.id)
-        .eq('year', year);
+      const [metasResult, activity] = await Promise.all([
+        supabaseAdmin.from('metas_parceria').select('*').eq('parceria_id', parceria.id).eq('year', year),
+        aggregateBrokerDataYearly(memberIds, year),
+      ]);
 
-      const metaTotals = (metas || []).reduce((acc, m) => ({
-        vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
-        captacoes: acc.captacoes + (Number(m.captacoes) || 0),
-        capt_exclusivas: acc.capt_exclusivas + (Number(m.capt_exclusivas) || 0),
-        negocios: acc.negocios + (Number(m.negocios) || 0),
-        treinamento: acc.treinamento + (Number(m.treinamento) || 0),
-        investimento: acc.investimento + (Number(m.investimento) || 0),
-        positivacao: acc.positivacao + (Number(m.positivacao) || 0),
-      }), { vgv_mensal: 0, captacoes: 0, capt_exclusivas: 0, negocios: 0, treinamento: 0, investimento: 0, positivacao: 0 });
-
-      const activity = await aggregateBrokerDataYearly(memberIds, year);
+      const metaTotals = reduceMetaTotals(metasResult.data || []);
 
       return {
         broker: { id: parceria.id, name: parceria.nome, team: memberNames.join(' + ') },
@@ -561,32 +514,16 @@ export class DashboardService {
       };
     }
 
-    // Solo broker
-    const { data: broker } = await supabaseAdmin
-      .from('profiles')
-      .select('id, name, team')
-      .eq('id', brokerId)
-      .single();
+    // Solo broker - optimized: parallel queries
+    const [brokerResult, metasResult, activity] = await Promise.all([
+      supabaseAdmin.from('profiles').select('id, name, team').eq('id', brokerId).single(),
+      supabaseAdmin.from('metas').select('*').eq('broker_id', brokerId).eq('year', year),
+      aggregateBrokerDataYearly([brokerId], year),
+    ]);
 
+    const broker = brokerResult.data;
     if (!broker) throw new Error('Corretor não encontrado');
-
-    const { data: metas } = await supabaseAdmin
-      .from('metas')
-      .select('*')
-      .eq('broker_id', brokerId)
-      .eq('year', year);
-
-    const metaTotals = (metas || []).reduce((acc, m) => ({
-      vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
-      captacoes: acc.captacoes + (Number(m.captacoes) || 0),
-      capt_exclusivas: acc.capt_exclusivas + (Number(m.capt_exclusivas) || 0),
-      negocios: acc.negocios + (Number(m.negocios) || 0),
-      treinamento: acc.treinamento + (Number(m.treinamento) || 0),
-      investimento: acc.investimento + (Number(m.investimento) || 0),
-      positivacao: acc.positivacao + (Number(m.positivacao) || 0),
-    }), { vgv_mensal: 0, captacoes: 0, capt_exclusivas: 0, negocios: 0, treinamento: 0, investimento: 0, positivacao: 0 });
-
-    const activity = await aggregateBrokerDataYearly([brokerId], year);
+    const metaTotals = reduceMetaTotals(metasResult.data || []);
 
     return {
       broker,

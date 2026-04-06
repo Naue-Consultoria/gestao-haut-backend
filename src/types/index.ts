@@ -1,5 +1,5 @@
 export type UserRole = 'corretor' | 'gestor';
-export type OrigemType = 'RELACIONAMENTO' | 'PATROCINADO' | 'CORRETOR_EXTERNO' | 'CORRETOR_INTERNO' | 'PORTAL';
+export type OrigemType = 'RELACIONAMENTO' | 'PATROCINADO' | 'CORRETOR_EXTERNO' | 'CORRETOR_INTERNO' | 'PORTAL' | 'PLANTAO_HAUT' | 'GRUPO_CORRETORES_WHATSAPP';
 export type InvestimentoType = 'PORTAL' | 'PATROCINADO' | 'CURSO' | 'NETWORKING' | 'PRESENTE_CLIENTE' | 'BRINDE' | 'OUTRO';
 
 export interface Profile {

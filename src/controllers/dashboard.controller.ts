@@ -46,6 +46,16 @@ export class DashboardController {
     }
   }
 
+  async individualYearly(req: AuthenticatedRequest, res: Response) {
+    try {
+      const year = parseInt(req.query.year as string) || getCurrentYear();
+      const data = await dashboardService.getIndividualYearly(req.params.brokerId, year);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      sendError(res, (err as Error).message, 500);
+    }
+  }
+
   async ranking(req: AuthenticatedRequest, res: Response) {
     try {
       const month = parseInt(req.query.month as string) ?? getCurrentMonth();

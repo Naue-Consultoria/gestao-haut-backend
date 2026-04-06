@@ -14,6 +14,7 @@ export class AuthController {
         session: { access_token: data.session?.access_token, refresh_token: data.session?.refresh_token },
       });
     } catch (err: unknown) {
+      console.error('Login error:', { email: body.email, error: (err as Error).message });
       if (err instanceof Error && err.message.includes('Invalid login')) {
         sendError(res, 'Credenciais inválidas', 401);
         return;

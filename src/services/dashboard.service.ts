@@ -36,6 +36,40 @@ async function aggregateBrokerData(brokerIds: string[], month: number, year: num
   };
 }
 
+// Helper: aggregate activity data for multiple broker IDs across all months of a year
+async function aggregateBrokerDataYearly(brokerIds: string[], year: number) {
+  const results = await Promise.all(brokerIds.map(async (brokerId) => {
+    const [positivacoes, captacoes, negocios, treinamentos, investimentos] = await Promise.all([
+      supabaseAdmin.from('positivacoes').select('vgv, comissao').eq('broker_id', brokerId).eq('year', year),
+      supabaseAdmin.from('captacoes').select('exclusivo').eq('broker_id', brokerId).eq('year', year),
+      supabaseAdmin.from('negocios').select('vgv').eq('broker_id', brokerId).eq('year', year),
+      supabaseAdmin.from('treinamentos').select('horas').eq('broker_id', brokerId).eq('year', year),
+      supabaseAdmin.from('investimentos').select('valor').eq('broker_id', brokerId).eq('year', year),
+    ]);
+    return { positivacoes: positivacoes.data || [], captacoes: captacoes.data || [], negocios: negocios.data || [], treinamentos: treinamentos.data || [], investimentos: investimentos.data || [] };
+  }));
+
+  const all = {
+    positivacoes: results.flatMap(r => r.positivacoes),
+    captacoes: results.flatMap(r => r.captacoes),
+    negocios: results.flatMap(r => r.negocios),
+    treinamentos: results.flatMap(r => r.treinamentos),
+    investimentos: results.flatMap(r => r.investimentos),
+  };
+
+  return {
+    vgvRealizado: all.positivacoes.reduce((s, p) => s + Number(p.vgv), 0),
+    comissaoTotal: all.positivacoes.reduce((s, p) => s + Number(p.comissao), 0),
+    positivacoesCount: all.positivacoes.length,
+    captacoesCount: all.captacoes.length,
+    captExclusivas: all.captacoes.filter(c => c.exclusivo === 'SIM').length,
+    negociosCount: all.negocios.length,
+    negociosVGV: all.negocios.reduce((s, n) => s + Number(n.vgv), 0),
+    treinamentoHoras: all.treinamentos.reduce((s, t) => s + Number(t.horas), 0),
+    investimentoValor: all.investimentos.reduce((s, i) => s + Number(i.valor), 0),
+  };
+}
+
 // Helper: aggregate yearly positivacoes for multiple broker IDs
 async function aggregateYearlyVGV(brokerIds: string[], year: number, upToMonth: number) {
   let totalRealizado = 0;
@@ -478,6 +512,101 @@ export class DashboardService {
 
     rankings.sort((a, b) => b.vgvRealizado - a.vgvRealizado);
     return rankings.map((r, i) => ({ ...r, position: i + 1 }));
+  }
+
+  async getIndividualYearly(brokerId: string, year: number) {
+    const parceria = await parceriasService.getByBrokerId(brokerId);
+
+    if (parceria) {
+      const memberIds = (parceria.parceria_membros || []).map((m: any) => m.broker_id);
+      const memberNames = (parceria.parceria_membros || []).map((m: any) => m.broker?.name).filter(Boolean);
+
+      // Sum metas across all 12 months
+      const { data: metas } = await supabaseAdmin
+        .from('metas_parceria')
+        .select('*')
+        .eq('parceria_id', parceria.id)
+        .eq('year', year);
+
+      const metaTotals = (metas || []).reduce((acc, m) => ({
+        vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
+        captacoes: acc.captacoes + (Number(m.captacoes) || 0),
+        capt_exclusivas: acc.capt_exclusivas + (Number(m.capt_exclusivas) || 0),
+        negocios: acc.negocios + (Number(m.negocios) || 0),
+        treinamento: acc.treinamento + (Number(m.treinamento) || 0),
+        investimento: acc.investimento + (Number(m.investimento) || 0),
+        positivacao: acc.positivacao + (Number(m.positivacao) || 0),
+      }), { vgv_mensal: 0, captacoes: 0, capt_exclusivas: 0, negocios: 0, treinamento: 0, investimento: 0, positivacao: 0 });
+
+      const activity = await aggregateBrokerDataYearly(memberIds, year);
+
+      return {
+        broker: { id: parceria.id, name: parceria.nome, team: memberNames.join(' + ') },
+        isParceria: true,
+        vgvRealizado: activity.vgvRealizado,
+        metaVGVAnual: metaTotals.vgv_mensal,
+        captacoes: activity.captacoesCount,
+        metaCaptacoes: metaTotals.captacoes,
+        captExclusivas: activity.captExclusivas,
+        metaCaptExclusivas: metaTotals.capt_exclusivas,
+        negociosVGV: activity.negociosVGV,
+        metaNegocios: metaTotals.negocios,
+        treinamentoHoras: activity.treinamentoHoras,
+        metaTreinamento: metaTotals.treinamento,
+        investimentoValor: activity.investimentoValor,
+        metaInvestimento: metaTotals.investimento,
+        positivacoes: activity.positivacoesCount,
+        metaPositivacao: metaTotals.positivacao,
+        comissaoTotal: activity.comissaoTotal,
+      };
+    }
+
+    // Solo broker
+    const { data: broker } = await supabaseAdmin
+      .from('profiles')
+      .select('id, name, team')
+      .eq('id', brokerId)
+      .single();
+
+    if (!broker) throw new Error('Corretor não encontrado');
+
+    const { data: metas } = await supabaseAdmin
+      .from('metas')
+      .select('*')
+      .eq('broker_id', brokerId)
+      .eq('year', year);
+
+    const metaTotals = (metas || []).reduce((acc, m) => ({
+      vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
+      captacoes: acc.captacoes + (Number(m.captacoes) || 0),
+      capt_exclusivas: acc.capt_exclusivas + (Number(m.capt_exclusivas) || 0),
+      negocios: acc.negocios + (Number(m.negocios) || 0),
+      treinamento: acc.treinamento + (Number(m.treinamento) || 0),
+      investimento: acc.investimento + (Number(m.investimento) || 0),
+      positivacao: acc.positivacao + (Number(m.positivacao) || 0),
+    }), { vgv_mensal: 0, captacoes: 0, capt_exclusivas: 0, negocios: 0, treinamento: 0, investimento: 0, positivacao: 0 });
+
+    const activity = await aggregateBrokerDataYearly([brokerId], year);
+
+    return {
+      broker,
+      isParceria: false,
+      vgvRealizado: activity.vgvRealizado,
+      metaVGVAnual: metaTotals.vgv_mensal,
+      captacoes: activity.captacoesCount,
+      metaCaptacoes: metaTotals.captacoes,
+      captExclusivas: activity.captExclusivas,
+      metaCaptExclusivas: metaTotals.capt_exclusivas,
+      negociosVGV: activity.negociosVGV,
+      metaNegocios: metaTotals.negocios,
+      treinamentoHoras: activity.treinamentoHoras,
+      metaTreinamento: metaTotals.treinamento,
+      investimentoValor: activity.investimentoValor,
+      metaInvestimento: metaTotals.investimento,
+      positivacoes: activity.positivacoesCount,
+      metaPositivacao: metaTotals.positivacao,
+      comissaoTotal: activity.comissaoTotal,
+    };
   }
 }
 

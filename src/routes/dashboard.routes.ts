@@ -10,4 +10,5 @@ dashboardRouter.get('/consolidated', (req, res) => dashboardController.consolida
 dashboardRouter.get('/consolidated/evolution', (req, res) => dashboardController.consolidatedEvolution(req, res));
 dashboardRouter.get('/individual/:brokerId', (req, res) => dashboardController.individual(req, res));
 dashboardRouter.get('/individual/:brokerId/evolution', (req, res) => dashboardController.yearlyEvolution(req, res));
+dashboardRouter.get('/individual/:brokerId/yearly', (req, res) => dashboardController.individualYearly(req, res));
 dashboardRouter.get('/ranking', requireGestor, (req, res) => dashboardController.ranking(req, res));

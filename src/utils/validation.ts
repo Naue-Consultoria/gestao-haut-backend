@@ -44,7 +44,7 @@ export const captacaoSchema = z.object({
   year: z.number().int().min(2020),
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
   exclusivo: z.string().default('NÃO'),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']).default('RELACIONAMENTO'),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']).default('RELACIONAMENTO'),
   vgv: z.number().min(0).default(0),
   broker_id: z.string().uuid().optional(),
 });
@@ -53,7 +53,7 @@ export const negocioSchema = z.object({
   month: z.number().int().min(0).max(11),
   year: z.number().int().min(2020),
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']).default('RELACIONAMENTO'),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']).default('RELACIONAMENTO'),
   vgv: z.number().min(0).default(0),
   broker_id: z.string().uuid().optional(),
 });
@@ -92,14 +92,14 @@ export const treinamentoUpdateSchema = z.object({
 
 export const negocioUpdateSchema = z.object({
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']),
   vgv: z.number().min(0),
 });
 
 export const captacaoUpdateSchema = z.object({
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
   exclusivo: z.string(),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_EXTERNO', 'CORRETOR_INTERNO', 'PORTAL']),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']),
   vgv: z.number().min(0),
 });
 

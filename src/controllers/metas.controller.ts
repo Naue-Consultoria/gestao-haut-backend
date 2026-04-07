@@ -40,11 +40,10 @@ export class MetasController {
 
   async bulkUpsertVgv(req: AuthenticatedRequest, res: Response) {
     try {
-      const { vgv_anual, vgv_mensal } = req.body;
+      const { vgv_anual } = req.body;
       const year = parseInt(req.query.year as string) || getCurrentYear();
       const vgvAnual = Number(vgv_anual) || 0;
-      const vgvMensal = Number(vgv_mensal) || 0;
-      const data = await metasService.bulkUpsertVgv(req.params.brokerId, year, vgvAnual, vgvMensal);
+      const data = await metasService.bulkUpsertVgv(req.params.brokerId, year, vgvAnual);
       sendSuccess(res, data);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);

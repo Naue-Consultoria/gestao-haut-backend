@@ -37,14 +37,27 @@ export class MetasService {
     return data;
   }
 
-  async bulkUpsertVgv(brokerId: string, year: number, vgvAnual: number, vgvMensal: number) {
-    // Step 1: Update VGV fields on all existing rows for this broker/year
+  async bulkUpsertVgv(brokerId: string, year: number, vgvAnual: number, _vgvMensal?: number) {
+    // Distribute annual VGV across 12 months with remainder in the last month
+    const vgvBase = Math.floor((vgvAnual / 12) * 100) / 100;
+    const vgvUltimo = Math.round((vgvAnual - vgvBase * 11) * 100) / 100;
+
+    // Step 1: Update VGV fields on all existing rows (months 0-10 get base, month 11 gets remainder)
     const { error: updateError } = await supabaseAdmin
       .from('metas')
-      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvMensal })
+      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvBase })
       .eq('broker_id', brokerId)
-      .eq('year', year);
+      .eq('year', year)
+      .lt('month', 11);
     if (updateError) throw new Error(updateError.message);
+
+    const { error: updateLastError } = await supabaseAdmin
+      .from('metas')
+      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvUltimo })
+      .eq('broker_id', brokerId)
+      .eq('year', year)
+      .eq('month', 11);
+    if (updateLastError) throw new Error(updateLastError.message);
 
     // Step 2: Find which months already have rows
     const { data: existing, error: fetchError } = await supabaseAdmin
@@ -56,7 +69,7 @@ export class MetasService {
 
     const existingMonths = new Set((existing || []).map(r => r.month));
 
-    // Step 3: Insert missing months with full default values
+    // Step 3: Insert missing months with correct VGV distribution
     const missingRows = Array.from({ length: 12 }, (_, m) => m)
       .filter(m => !existingMonths.has(m))
       .map(month => ({
@@ -64,7 +77,7 @@ export class MetasService {
         month,
         year,
         vgv_anual: vgvAnual,
-        vgv_mensal: vgvMensal,
+        vgv_mensal: month === 11 ? vgvUltimo : vgvBase,
         captacoes: 0,
         capt_exclusivas: 0,
         negocios: 0,

@@ -122,10 +122,10 @@ export class ParceriasController {
 
   async bulkUpsertVgv(req: AuthenticatedRequest, res: Response) {
     try {
-      const { vgv_anual, vgv_mensal } = req.body;
+      const { vgv_anual } = req.body;
       const year = parseInt(req.query.year as string) || getCurrentYear();
       const data = await parceriasService.bulkUpsertVgv(
-        req.params.id, year, Number(vgv_anual) || 0, Number(vgv_mensal) || 0
+        req.params.id, year, Number(vgv_anual) || 0
       );
       sendSuccess(res, data);
     } catch (err: unknown) {

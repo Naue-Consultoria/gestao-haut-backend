@@ -117,8 +117,8 @@ export const planoAcaoUpdateSchema = z.object({
 });
 
 export const metaSchema = z.object({
-  vgv_anual: z.number().min(0).default(0),
-  vgv_mensal: z.number().min(0).default(0),
+  vgv_anual: z.number().min(0).optional(),
+  vgv_mensal: z.number().min(0).optional(),
   captacoes: z.number().int().min(0).default(0),
   capt_exclusivas: z.number().int().min(0).default(0),
   negocios: z.number().min(0).default(0),

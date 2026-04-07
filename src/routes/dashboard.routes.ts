@@ -8,6 +8,7 @@ export const dashboardRouter = Router();
 dashboardRouter.use(authMiddleware);
 dashboardRouter.get('/consolidated', (req, res) => dashboardController.consolidated(req, res));
 dashboardRouter.get('/consolidated/evolution', (req, res) => dashboardController.consolidatedEvolution(req, res));
+dashboardRouter.get('/consolidated/yearly', (req, res) => dashboardController.consolidatedYearly(req, res));
 dashboardRouter.get('/individual/:brokerId', (req, res) => dashboardController.individual(req, res));
 dashboardRouter.get('/individual/:brokerId/evolution', (req, res) => dashboardController.yearlyEvolution(req, res));
 dashboardRouter.get('/individual/:brokerId/yearly', (req, res) => dashboardController.individualYearly(req, res));

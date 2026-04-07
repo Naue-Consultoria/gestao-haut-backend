@@ -170,13 +170,26 @@ export class ParceriasService {
     return data;
   }
 
-  async bulkUpsertVgv(parceriaId: string, year: number, vgvAnual: number, vgvMensal: number) {
+  async bulkUpsertVgv(parceriaId: string, year: number, vgvAnual: number, _vgvMensal?: number) {
+    // Distribute annual VGV across 12 months with remainder in the last month
+    const vgvBase = Math.floor((vgvAnual / 12) * 100) / 100;
+    const vgvUltimo = Math.round((vgvAnual - vgvBase * 11) * 100) / 100;
+
     const { error: updateError } = await supabaseAdmin
       .from('metas_parceria')
-      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvMensal })
+      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvBase })
       .eq('parceria_id', parceriaId)
-      .eq('year', year);
+      .eq('year', year)
+      .lt('month', 11);
     if (updateError) throw new Error(updateError.message);
+
+    const { error: updateLastError } = await supabaseAdmin
+      .from('metas_parceria')
+      .update({ vgv_anual: vgvAnual, vgv_mensal: vgvUltimo })
+      .eq('parceria_id', parceriaId)
+      .eq('year', year)
+      .eq('month', 11);
+    if (updateLastError) throw new Error(updateLastError.message);
 
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from('metas_parceria')
@@ -194,7 +207,7 @@ export class ParceriasService {
         month,
         year,
         vgv_anual: vgvAnual,
-        vgv_mensal: vgvMensal,
+        vgv_mensal: month === 11 ? vgvUltimo : vgvBase,
         captacoes: 0,
         capt_exclusivas: 0,
         negocios: 0,

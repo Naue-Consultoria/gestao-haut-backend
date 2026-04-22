@@ -709,7 +709,7 @@ export class DashboardService {
         .eq('year', year),
       supabaseAdmin
         .from('investimentos')
-        .select('broker_id, valor, tipo')
+        .select('broker_id, valor')
         .in('broker_id', brokerIds)
         .eq('month', month)
         .eq('year', year)
@@ -784,7 +784,7 @@ export class DashboardService {
         .eq('year', year),
       supabaseAdmin
         .from('investimentos')
-        .select('broker_id, valor, tipo')
+        .select('broker_id, valor')
         .in('broker_id', brokerIds)
         .eq('year', year)
         .in('tipo', ['CURSO', 'NETWORKING']),

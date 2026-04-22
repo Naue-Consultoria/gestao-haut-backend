@@ -696,24 +696,15 @@ export class DashboardService {
   // floating-point drift on BRL sums, then divided back to decimal at the
   // return boundary (HR-02).
   private async getRoiEntries(year: number, month?: number): Promise<RoiEntry[]> {
-    const brokers = await profilesService.getBrokers(); // role='corretor' AND active=true
-
-    if (brokers.length === 0) return [];
-
-    const brokerIds = brokers.map(b => b.id);
-
-    // 2 parallel queries — receita from positivacoes.vgv, investimento from
-    // investimentos.valor filtered to training-type tipos (CURSO, NETWORKING).
-    // See schema_discovery_result in PLAN.md for rationale.
+    // 3 queries in parallel — getBrokers no longer blocks positivacoes/investimentos.
+    // Filtering by valid broker IDs happens in memory after the await.
     let positivacoesQ = supabaseAdmin
       .from('positivacoes')
       .select('broker_id, vgv')
-      .in('broker_id', brokerIds)
       .eq('year', year);
     let investimentosQ = supabaseAdmin
       .from('investimentos')
       .select('broker_id, valor')
-      .in('broker_id', brokerIds)
       .eq('year', year)
       .gt('valor', 0);
 
@@ -722,17 +713,23 @@ export class DashboardService {
       investimentosQ = investimentosQ.eq('month', month);
     }
 
-    const [positivacoesResult, investimentosResult] = await Promise.all([
+    const [brokers, positivacoesResult, investimentosResult] = await Promise.all([
+      profilesService.getBrokers(), // role='corretor' AND active=true
       positivacoesQ,
       investimentosQ,
     ]);
 
+    if (brokers.length === 0) return [];
     if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
     if (investimentosResult.error) throw new Error(investimentosResult.error.message);
 
+    const validBrokerIds = new Set(brokers.map(b => b.id));
+
     // Accumulate in integer centavos to avoid IEEE 754 drift on BRL sums.
+    // Only rows belonging to active corretores are counted.
     const receitaCentsByBroker = new Map<string, number>();
     for (const p of positivacoesResult.data || []) {
+      if (!validBrokerIds.has(p.broker_id)) continue;
       receitaCentsByBroker.set(
         p.broker_id,
         (receitaCentsByBroker.get(p.broker_id) ?? 0) + Math.round(Number(p.vgv ?? 0) * 100),
@@ -741,6 +738,7 @@ export class DashboardService {
 
     const investCentsByBroker = new Map<string, number>();
     for (const i of investimentosResult.data || []) {
+      if (!validBrokerIds.has(i.broker_id)) continue;
       investCentsByBroker.set(
         i.broker_id,
         (investCentsByBroker.get(i.broker_id) ?? 0) + Math.round(Number(i.valor ?? 0) * 100),

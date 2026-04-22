@@ -147,9 +147,9 @@ export const monthYearQuery = z.object({
 
 export const roiMonthlyQuery = z.object({
   month: z.coerce.number().int().min(0).max(11),
-  year: z.coerce.number().int().min(2020),
+  year: z.coerce.number().int().min(2020).max(new Date().getFullYear() + 1),
 });
 
 export const roiYearlyQuery = z.object({
-  year: z.coerce.number().int().min(2020),
+  year: z.coerce.number().int().min(2020).max(new Date().getFullYear() + 1),
 });

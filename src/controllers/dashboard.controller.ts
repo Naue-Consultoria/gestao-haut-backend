@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { dashboardService } from '../services/dashboard.service';
-import { sendSuccess, sendError, getCurrentMonth, getCurrentYear } from '../utils/helpers';
+import { sendSuccess, sendError, getCurrentMonth, getCurrentYear, handleValidationError } from '../utils/helpers';
+import { roiMonthlyQuery, roiYearlyQuery } from '../utils/validation';
 
 export class DashboardController {
   async consolidated(req: AuthenticatedRequest, res: Response) {
@@ -74,6 +75,34 @@ export class DashboardController {
       sendSuccess(res, data);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);
+    }
+  }
+
+  async roi(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { month, year } = roiMonthlyQuery.parse(req.query);
+      const data = await dashboardService.getRoi(month, year);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      try {
+        handleValidationError(res, err);
+      } catch {
+        sendError(res, (err as Error).message, 500);
+      }
+    }
+  }
+
+  async roiYearly(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { year } = roiYearlyQuery.parse(req.query);
+      const data = await dashboardService.getRoiYearly(year);
+      sendSuccess(res, data);
+    } catch (err: unknown) {
+      try {
+        handleValidationError(res, err);
+      } catch {
+        sendError(res, (err as Error).message, 500);
+      }
     }
   }
 }

@@ -13,3 +13,5 @@ dashboardRouter.get('/individual/:brokerId', (req, res) => dashboardController.i
 dashboardRouter.get('/individual/:brokerId/evolution', (req, res) => dashboardController.yearlyEvolution(req, res));
 dashboardRouter.get('/individual/:brokerId/yearly', (req, res) => dashboardController.individualYearly(req, res));
 dashboardRouter.get('/ranking', requireGestor, (req, res) => dashboardController.ranking(req, res));
+dashboardRouter.get('/roi', requireGestor, (req, res) => dashboardController.roi(req, res));
+dashboardRouter.get('/roi/yearly', requireGestor, (req, res) => dashboardController.roiYearly(req, res));

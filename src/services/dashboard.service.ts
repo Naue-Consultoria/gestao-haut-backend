@@ -690,7 +690,12 @@ export class DashboardService {
     };
   }
 
-  async getRoi(month: number, year: number): Promise<RoiEntry[]> {
+  // Shared helper for both monthly and yearly ROI ranking.
+  // Pass month to restrict to a single month; omit for full-year aggregation.
+  // Monetary values are accumulated as integer centavos to avoid IEEE 754
+  // floating-point drift on BRL sums, then divided back to decimal at the
+  // return boundary (HR-02).
+  private async getRoiEntries(year: number, month?: number): Promise<RoiEntry[]> {
     const brokers = await profilesService.getBrokers(); // role='corretor' AND active=true
 
     if (brokers.length === 0) return [];
@@ -700,45 +705,53 @@ export class DashboardService {
     // 2 parallel queries — receita from positivacoes.vgv, investimento from
     // investimentos.valor filtered to training-type tipos (CURSO, NETWORKING).
     // See schema_discovery_result in PLAN.md for rationale.
+    let positivacoesQ = supabaseAdmin
+      .from('positivacoes')
+      .select('broker_id, vgv')
+      .in('broker_id', brokerIds)
+      .eq('year', year);
+    let investimentosQ = supabaseAdmin
+      .from('investimentos')
+      .select('broker_id, valor')
+      .in('broker_id', brokerIds)
+      .eq('year', year)
+      .in('tipo', ['CURSO', 'NETWORKING']);
+
+    if (month !== undefined) {
+      positivacoesQ  = positivacoesQ.eq('month', month);
+      investimentosQ = investimentosQ.eq('month', month);
+    }
+
     const [positivacoesResult, investimentosResult] = await Promise.all([
-      supabaseAdmin
-        .from('positivacoes')
-        .select('broker_id, vgv')
-        .in('broker_id', brokerIds)
-        .eq('month', month)
-        .eq('year', year),
-      supabaseAdmin
-        .from('investimentos')
-        .select('broker_id, valor')
-        .in('broker_id', brokerIds)
-        .eq('month', month)
-        .eq('year', year)
-        .in('tipo', ['CURSO', 'NETWORKING']),
+      positivacoesQ,
+      investimentosQ,
     ]);
 
     if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
     if (investimentosResult.error) throw new Error(investimentosResult.error.message);
 
-    const receitaByBroker = new Map<string, number>();
+    // Accumulate in integer centavos to avoid IEEE 754 drift on BRL sums.
+    const receitaCentsByBroker = new Map<string, number>();
     for (const p of positivacoesResult.data || []) {
-      receitaByBroker.set(
+      receitaCentsByBroker.set(
         p.broker_id,
-        (receitaByBroker.get(p.broker_id) ?? 0) + Number(p.vgv ?? 0),
+        (receitaCentsByBroker.get(p.broker_id) ?? 0) + Math.round(Number(p.vgv ?? 0) * 100),
       );
     }
 
-    const investByBroker = new Map<string, number>();
+    const investCentsByBroker = new Map<string, number>();
     for (const i of investimentosResult.data || []) {
-      investByBroker.set(
+      investCentsByBroker.set(
         i.broker_id,
-        (investByBroker.get(i.broker_id) ?? 0) + Number(i.valor ?? 0),
+        (investCentsByBroker.get(i.broker_id) ?? 0) + Math.round(Number(i.valor ?? 0) * 100),
       );
     }
 
     const entries: RoiEntry[] = [];
     for (const b of brokers) {
-      const receita = receitaByBroker.get(b.id) ?? 0;
-      const investimento = investByBroker.get(b.id) ?? 0;
+      // Convert centavos back to decimal BRL at the return boundary.
+      const receita     = (receitaCentsByBroker.get(b.id) ?? 0) / 100;
+      const investimento = (investCentsByBroker.get(b.id) ?? 0) / 100;
 
       // Filter: skip brokers with no activity at all in the period.
       if (receita === 0 && investimento === 0) continue;
@@ -766,78 +779,12 @@ export class DashboardService {
     return entries;
   }
 
+  async getRoi(month: number, year: number): Promise<RoiEntry[]> {
+    return this.getRoiEntries(year, month);
+  }
+
   async getRoiYearly(year: number): Promise<RoiEntry[]> {
-    const brokers = await profilesService.getBrokers(); // role='corretor' AND active=true
-
-    if (brokers.length === 0) return [];
-
-    const brokerIds = brokers.map(b => b.id);
-
-    // 2 parallel queries — receita from positivacoes.vgv, investimento from
-    // investimentos.valor filtered to training-type tipos (CURSO, NETWORKING).
-    // No month filter — covers full calendar year.
-    const [positivacoesResult, investimentosResult] = await Promise.all([
-      supabaseAdmin
-        .from('positivacoes')
-        .select('broker_id, vgv')
-        .in('broker_id', brokerIds)
-        .eq('year', year),
-      supabaseAdmin
-        .from('investimentos')
-        .select('broker_id, valor')
-        .in('broker_id', brokerIds)
-        .eq('year', year)
-        .in('tipo', ['CURSO', 'NETWORKING']),
-    ]);
-
-    if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
-    if (investimentosResult.error) throw new Error(investimentosResult.error.message);
-
-    const receitaByBroker = new Map<string, number>();
-    for (const p of positivacoesResult.data || []) {
-      receitaByBroker.set(
-        p.broker_id,
-        (receitaByBroker.get(p.broker_id) ?? 0) + Number(p.vgv ?? 0),
-      );
-    }
-
-    const investByBroker = new Map<string, number>();
-    for (const i of investimentosResult.data || []) {
-      investByBroker.set(
-        i.broker_id,
-        (investByBroker.get(i.broker_id) ?? 0) + Number(i.valor ?? 0),
-      );
-    }
-
-    const entries: RoiEntry[] = [];
-    for (const b of brokers) {
-      const receita = receitaByBroker.get(b.id) ?? 0;
-      const investimento = investByBroker.get(b.id) ?? 0;
-
-      // Filter: skip brokers with no activity at all in the period.
-      if (receita === 0 && investimento === 0) continue;
-
-      // Zero-investment handling — explicit null, never Infinity/NaN.
-      const roi = investimento === 0 ? null : (receita - investimento) / investimento;
-
-      entries.push({
-        brokerId: b.id,
-        brokerName: b.name,
-        receita,
-        investimento,
-        roi,
-      });
-    }
-
-    // Sort desc by roi, nulls last.
-    entries.sort((a, b) => {
-      if (a.roi === null && b.roi === null) return 0;
-      if (a.roi === null) return 1;
-      if (b.roi === null) return -1;
-      return b.roi - a.roi;
-    });
-
-    return entries;
+    return this.getRoiEntries(year);
   }
 }
 

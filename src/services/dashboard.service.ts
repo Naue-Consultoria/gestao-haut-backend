@@ -715,7 +715,7 @@ export class DashboardService {
       .select('broker_id, valor')
       .in('broker_id', brokerIds)
       .eq('year', year)
-      .in('tipo', ['CURSO', 'NETWORKING']);
+      .gt('valor', 0);
 
     if (month !== undefined) {
       positivacoesQ  = positivacoesQ.eq('month', month);

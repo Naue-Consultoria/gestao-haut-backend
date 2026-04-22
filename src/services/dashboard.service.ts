@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase';
 import { profilesService } from './profiles.service';
 import { parceriasService } from './parcerias.service';
+import { RoiEntry } from '../types/api';
 
 // Helper: aggregate activity data for multiple broker IDs (optimized: 5 queries total using .in())
 async function aggregateBrokerData(brokerIds: string[], month: number, year: number) {
@@ -687,6 +688,156 @@ export class DashboardService {
       metaVGV,
       brokers: brokerSummaries,
     };
+  }
+
+  async getRoi(month: number, year: number): Promise<RoiEntry[]> {
+    const brokers = await profilesService.getBrokers(); // role='corretor' AND active=true
+
+    if (brokers.length === 0) return [];
+
+    const brokerIds = brokers.map(b => b.id);
+
+    // 2 parallel queries — receita from positivacoes.vgv, investimento from
+    // investimentos.valor filtered to training-type tipos (CURSO, NETWORKING).
+    // See schema_discovery_result in PLAN.md for rationale.
+    const [positivacoesResult, investimentosResult] = await Promise.all([
+      supabaseAdmin
+        .from('positivacoes')
+        .select('broker_id, vgv')
+        .in('broker_id', brokerIds)
+        .eq('month', month)
+        .eq('year', year),
+      supabaseAdmin
+        .from('investimentos')
+        .select('broker_id, valor, tipo')
+        .in('broker_id', brokerIds)
+        .eq('month', month)
+        .eq('year', year)
+        .in('tipo', ['CURSO', 'NETWORKING']),
+    ]);
+
+    if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
+    if (investimentosResult.error) throw new Error(investimentosResult.error.message);
+
+    const receitaByBroker = new Map<string, number>();
+    for (const p of positivacoesResult.data || []) {
+      receitaByBroker.set(
+        p.broker_id,
+        (receitaByBroker.get(p.broker_id) ?? 0) + Number(p.vgv ?? 0),
+      );
+    }
+
+    const investByBroker = new Map<string, number>();
+    for (const i of investimentosResult.data || []) {
+      investByBroker.set(
+        i.broker_id,
+        (investByBroker.get(i.broker_id) ?? 0) + Number(i.valor ?? 0),
+      );
+    }
+
+    const entries: RoiEntry[] = [];
+    for (const b of brokers) {
+      const receita = receitaByBroker.get(b.id) ?? 0;
+      const investimento = investByBroker.get(b.id) ?? 0;
+
+      // Filter: skip brokers with no activity at all in the period.
+      if (receita === 0 && investimento === 0) continue;
+
+      // Zero-investment handling — explicit null, never Infinity/NaN.
+      const roi = investimento === 0 ? null : (receita - investimento) / investimento;
+
+      entries.push({
+        brokerId: b.id,
+        brokerName: b.name,
+        receita,
+        investimento,
+        roi,
+      });
+    }
+
+    // Sort desc by roi, nulls last.
+    entries.sort((a, b) => {
+      if (a.roi === null && b.roi === null) return 0;
+      if (a.roi === null) return 1;
+      if (b.roi === null) return -1;
+      return b.roi - a.roi;
+    });
+
+    return entries;
+  }
+
+  async getRoiYearly(year: number): Promise<RoiEntry[]> {
+    const brokers = await profilesService.getBrokers(); // role='corretor' AND active=true
+
+    if (brokers.length === 0) return [];
+
+    const brokerIds = brokers.map(b => b.id);
+
+    // 2 parallel queries — receita from positivacoes.vgv, investimento from
+    // investimentos.valor filtered to training-type tipos (CURSO, NETWORKING).
+    // No month filter — covers full calendar year.
+    const [positivacoesResult, investimentosResult] = await Promise.all([
+      supabaseAdmin
+        .from('positivacoes')
+        .select('broker_id, vgv')
+        .in('broker_id', brokerIds)
+        .eq('year', year),
+      supabaseAdmin
+        .from('investimentos')
+        .select('broker_id, valor, tipo')
+        .in('broker_id', brokerIds)
+        .eq('year', year)
+        .in('tipo', ['CURSO', 'NETWORKING']),
+    ]);
+
+    if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
+    if (investimentosResult.error) throw new Error(investimentosResult.error.message);
+
+    const receitaByBroker = new Map<string, number>();
+    for (const p of positivacoesResult.data || []) {
+      receitaByBroker.set(
+        p.broker_id,
+        (receitaByBroker.get(p.broker_id) ?? 0) + Number(p.vgv ?? 0),
+      );
+    }
+
+    const investByBroker = new Map<string, number>();
+    for (const i of investimentosResult.data || []) {
+      investByBroker.set(
+        i.broker_id,
+        (investByBroker.get(i.broker_id) ?? 0) + Number(i.valor ?? 0),
+      );
+    }
+
+    const entries: RoiEntry[] = [];
+    for (const b of brokers) {
+      const receita = receitaByBroker.get(b.id) ?? 0;
+      const investimento = investByBroker.get(b.id) ?? 0;
+
+      // Filter: skip brokers with no activity at all in the period.
+      if (receita === 0 && investimento === 0) continue;
+
+      // Zero-investment handling — explicit null, never Infinity/NaN.
+      const roi = investimento === 0 ? null : (receita - investimento) / investimento;
+
+      entries.push({
+        brokerId: b.id,
+        brokerName: b.name,
+        receita,
+        investimento,
+        roi,
+      });
+    }
+
+    // Sort desc by roi, nulls last.
+    entries.sort((a, b) => {
+      if (a.roi === null && b.roi === null) return 0;
+      if (a.roi === null) return 1;
+      if (b.roi === null) return -1;
+      return b.roi - a.roi;
+    });
+
+    return entries;
   }
 }
 

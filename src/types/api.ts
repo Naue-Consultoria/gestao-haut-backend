@@ -84,3 +84,11 @@ export interface RankingItem {
   investimento: number;
   positivacoes: number;
 }
+
+export type RoiEntry = {
+  brokerId: string;
+  brokerName: string;
+  receita: number;
+  investimento: number;
+  roi: number | null;
+};

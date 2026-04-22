@@ -144,3 +144,12 @@ export const monthYearQuery = z.object({
   year: z.coerce.number().int().min(2020).optional(),
   brokerId: z.string().uuid().optional(),
 });
+
+export const roiMonthlyQuery = z.object({
+  month: z.coerce.number().int().min(0).max(11),
+  year: z.coerce.number().int().min(2020),
+});
+
+export const roiYearlyQuery = z.object({
+  year: z.coerce.number().int().min(2020),
+});

@@ -17,31 +17,22 @@ export class MapaAmbicaoService {
     brokerId: string,
     payload: { dados?: Record<string, unknown>; status?: 'vazio' | 'parcial' | 'preenchido' }
   ): Promise<MapaAmbicao> {
+    // Read existing row once to obtain fallback values for omitted fields.
+    // The write below is an atomic DB-level upsert, so concurrent autosave
+    // requests from the same corretor cannot both trigger a duplicate INSERT.
     const existing = await this.getByBrokerId(brokerId);
-    const now = new Date().toISOString();
-
-    if (existing) {
-      const updates: Record<string, unknown> = { updated_at: now };
-      if (payload.dados !== undefined) updates.dados = payload.dados;
-      if (payload.status !== undefined) updates.status = payload.status;
-
-      const { data, error } = await supabaseAdmin
-        .from('mapas_ambicao')
-        .update(updates)
-        .eq('broker_id', brokerId)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return data as MapaAmbicao;
-    }
 
     const { data, error } = await supabaseAdmin
       .from('mapas_ambicao')
-      .insert({
-        broker_id: brokerId,
-        dados: payload.dados ?? {},
-        status: payload.status ?? 'vazio',
-      })
+      .upsert(
+        {
+          broker_id: brokerId,
+          dados: payload.dados !== undefined ? payload.dados : (existing?.dados ?? {}),
+          status: payload.status !== undefined ? payload.status : (existing?.status ?? 'vazio'),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'broker_id', ignoreDuplicates: false }
+      )
       .select()
       .single();
     if (error) throw new Error(error.message);

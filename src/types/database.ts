@@ -82,6 +82,7 @@ export interface Database {
           oportunidade: string;
           origem: string;
           vgv: number;
+          notas: string | null;
           created_at: string;
         };
       };

@@ -19,7 +19,7 @@ export class NegociosService {
     return data;
   }
 
-  async create(brokerId: string, record: { month: number; year: number; oportunidade: string; origem: string; vgv: number }) {
+  async create(brokerId: string, record: { month: number; year: number; oportunidade: string; origem: string; vgv: number; notas?: string }) {
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .insert({ broker_id: brokerId, ...record })
@@ -29,7 +29,7 @@ export class NegociosService {
     return data;
   }
 
-  async update(id: string, record: { oportunidade?: string; origem?: string; vgv?: number }) {
+  async update(id: string, record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .update(record)
@@ -40,7 +40,7 @@ export class NegociosService {
     return data;
   }
 
-  async updateByBroker(id: string, brokerId: string, record: { oportunidade?: string; origem?: string; vgv?: number }) {
+  async updateByBroker(id: string, brokerId: string, record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .update(record)
@@ -52,7 +52,7 @@ export class NegociosService {
     return data;
   }
 
-  async updateByPartner(id: string, brokerIds: string[], record: { oportunidade?: string; origem?: string; vgv?: number }) {
+  async updateByPartner(id: string, brokerIds: string[], record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .update(record)

@@ -1,5 +1,5 @@
 export type UserRole = 'corretor' | 'gestor';
-export type OrigemType = 'RELACIONAMENTO' | 'PATROCINADO' | 'CORRETOR_EXTERNO' | 'CORRETOR_INTERNO' | 'PORTAL' | 'PLANTAO_HAUT' | 'GRUPO_CORRETORES_WHATSAPP';
+export type OrigemType = 'RELACIONAMENTO' | 'PATROCINADO' | 'CORRETOR_EXTERNO' | 'CORRETOR_INTERNO' | 'PORTAL' | 'PLANTAO_HAUT' | 'GRUPO_CORRETORES_WHATSAPP' | 'CLIENTE_DE_CARTEIRA' | 'PROSPECCAO_ATIVA';
 export type InvestimentoType = 'PORTAL' | 'PATROCINADO' | 'CURSO' | 'NETWORKING' | 'PRESENTE_CLIENTE' | 'BRINDE' | 'OUTRO';
 
 export interface Profile {
@@ -62,6 +62,7 @@ export interface Negocio {
   oportunidade: string;
   origem: OrigemType;
   vgv: number;
+  notas?: string | null;
   created_at: string;
 }
 

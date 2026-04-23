@@ -92,3 +92,21 @@ export type RoiEntry = {
   investimento: number;
   roi: number | null;
 };
+
+export interface MapaAmbicao {
+  id: string;
+  broker_id: string;
+  dados: Record<string, unknown>;
+  status: 'vazio' | 'parcial' | 'preenchido';
+  created_at: string;
+  updated_at: string;
+}
+
+// Item de listagem pro gestor — inclui corretores sem mapa (has_mapa=false).
+export interface MapaAmbicaoSummary {
+  broker_id: string;
+  broker_name: string;
+  status: 'vazio' | 'parcial' | 'preenchido';
+  updated_at: string | null;
+  has_mapa: boolean;
+}

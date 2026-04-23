@@ -153,3 +153,10 @@ export const roiMonthlyQuery = z.object({
 export const roiYearlyQuery = z.object({
   year: z.coerce.number().int().min(2020).max(new Date().getFullYear() + 1),
 });
+
+// Mapa de Ambição — PUT body. Ambos os campos opcionais (autosave do frontend
+// manda qualquer parte; não validamos schema interno do JSONB em v1).
+export const mapaAmbicaoUpsertSchema = z.object({
+  dados: z.record(z.unknown()).optional(),
+  status: z.enum(['vazio', 'parcial', 'preenchido']).optional(),
+});

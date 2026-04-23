@@ -12,6 +12,7 @@ import { planosAcaoRouter } from './planosAcao.routes';
 import { dashboardRouter } from './dashboard.routes';
 import { reportsRouter } from './reports.routes';
 import { parceriasRouter } from './parcerias.routes';
+import { mapaAmbicaoRouter, mapasAmbicaoRouter } from './mapa-ambicao.routes';
 
 export const router = Router();
 
@@ -28,3 +29,5 @@ router.use('/planos-acao', planosAcaoRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/reports', reportsRouter);
 router.use('/parcerias', parceriasRouter);
+router.use('/mapa-ambicao', mapaAmbicaoRouter);
+router.use('/mapas-ambicao', mapasAmbicaoRouter);

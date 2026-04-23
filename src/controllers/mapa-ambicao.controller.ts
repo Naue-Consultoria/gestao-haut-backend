@@ -14,10 +14,7 @@ export class MapaAmbicaoController {
         return;
       }
       const mapa = await mapaAmbicaoService.getByBrokerId(brokerId);
-      if (!mapa) {
-        sendError(res, 'Mapa não encontrado', 404);
-        return;
-      }
+      // Return null data instead of 404 so frontend treats absence as blank mapa
       sendSuccess(res, mapa);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);

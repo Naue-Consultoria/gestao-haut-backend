@@ -17,7 +17,8 @@ export class MapaAmbicaoController {
       // Return null data instead of 404 so frontend treats absence as blank mapa
       sendSuccess(res, mapa);
     } catch (err: unknown) {
-      sendError(res, (err as Error).message, 500);
+      console.error('[MapaAmbicao] getMine error:', (err as Error).message);
+      sendError(res, 'Erro interno ao processar mapa de ambição', 500);
     }
   }
 
@@ -35,7 +36,8 @@ export class MapaAmbicaoController {
       try {
         handleValidationError(res, err);
       } catch {
-        sendError(res, (err as Error).message, 500);
+        console.error('[MapaAmbicao] upsertMine error:', (err as Error).message);
+        sendError(res, 'Erro interno ao processar mapa de ambição', 500);
       }
     }
   }
@@ -45,7 +47,8 @@ export class MapaAmbicaoController {
       const data = await mapaAmbicaoService.listAllWithProfiles();
       sendSuccess(res, data);
     } catch (err: unknown) {
-      sendError(res, (err as Error).message, 500);
+      console.error('[MapaAmbicao] listForGestor error:', (err as Error).message);
+      sendError(res, 'Erro interno ao processar mapa de ambição', 500);
     }
   }
 
@@ -63,7 +66,8 @@ export class MapaAmbicaoController {
       }
       sendSuccess(res, mapa);
     } catch (err: unknown) {
-      sendError(res, (err as Error).message, 500);
+      console.error('[MapaAmbicao] getOneForGestor error:', (err as Error).message);
+      sendError(res, 'Erro interno ao processar mapa de ambição', 500);
     }
   }
 }

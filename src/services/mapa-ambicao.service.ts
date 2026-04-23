@@ -40,6 +40,10 @@ export class MapaAmbicaoService {
   }
 
   async listAllWithProfiles(): Promise<MapaAmbicaoSummary[]> {
+    // getBrokers() returns active corretores only. Deactivated corretores' mapas
+    // are intentionally excluded from this list — the gestor list shows the current
+    // active team. Historical mapas of deactivated corretores remain in the DB and
+    // are still accessible via getAsGestor(brokerId) for individual lookup.
     const brokers = await profilesService.getBrokers();
 
     const { data: mapas, error } = await supabaseAdmin

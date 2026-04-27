@@ -44,7 +44,7 @@ export const captacaoSchema = z.object({
   year: z.number().int().min(2020),
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
   exclusivo: z.string().default('NÃO'),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']).default('RELACIONAMENTO'),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'CLIENTE_DE_CARTEIRA', 'PROSPECCAO_ATIVA', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']).default('RELACIONAMENTO'),
   vgv: z.number().min(0).default(0),
   broker_id: z.string().uuid().optional(),
 });
@@ -101,7 +101,7 @@ export const negocioUpdateSchema = z.object({
 export const captacaoUpdateSchema = z.object({
   oportunidade: z.string().min(1, 'Oportunidade é obrigatória'),
   exclusivo: z.string(),
-  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']),
+  origem: z.enum(['RELACIONAMENTO', 'PATROCINADO', 'CORRETOR_INTERNO', 'CLIENTE_DE_CARTEIRA', 'PROSPECCAO_ATIVA', 'PORTAL', 'PLANTAO_HAUT', 'GRUPO_CORRETORES_WHATSAPP']),
   vgv: z.number().min(0),
 });
 

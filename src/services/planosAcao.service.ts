@@ -46,11 +46,34 @@ export class PlanosAcaoService {
     return result;
   }
 
+  /** Atualiza apenas se o plano for de um corretor dentro do escopo informado. */
+  async updateScoped(id: string, brokerIds: string[], data: { texto?: string; prazo?: string; status?: string }) {
+    const { data: result, error } = await supabaseAdmin
+      .from('planos_acao')
+      .update(data)
+      .eq('id', id)
+      .in('broker_id', brokerIds)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return result;
+  }
+
   async delete(id: string) {
     const { error } = await supabaseAdmin
       .from('planos_acao')
       .delete()
       .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  /** Exclui apenas se o plano for de um corretor dentro do escopo informado. */
+  async deleteScoped(id: string, brokerIds: string[]) {
+    const { error } = await supabaseAdmin
+      .from('planos_acao')
+      .delete()
+      .eq('id', id)
+      .in('broker_id', brokerIds);
     if (error) throw new Error(error.message);
   }
 }

@@ -17,15 +17,16 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
     return;
   }
 
-  // Get profile to know role and must_change_password flag
+  // Get profile to know role, team (escopo do gerente) and must_change_password flag
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('role, must_change_password')
+    .select('role, team, must_change_password')
     .eq('id', user.id)
     .single();
 
   req.userId = user.id;
   req.userRole = profile?.role || 'corretor';
+  req.userTeam = profile?.team || '';
   req.accessToken = token;
 
   // If user must change password, only allow specific auth routes

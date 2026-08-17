@@ -238,8 +238,10 @@ Base URL: `/api/v1`
 
 | Middleware | Descrição |
 |------------|-----------|
-| `authMiddleware` | Valida o token JWT (Bearer) via Supabase. Anexa `userId`, `userRole` e `accessToken` à request. Bloqueia acesso se `must_change_password` for `true` (exceto endpoints de auth). |
+| `authMiddleware` | Valida o token JWT (Bearer) via Supabase. Anexa `userId`, `userRole`, `userTeam` e `accessToken` à request. Bloqueia acesso se `must_change_password` for `true` (exceto endpoints de auth). |
 | `requireGestor` | Restringe o endpoint apenas para usuários com role `gestor`. Retorna 403 se não autorizado. |
+| `requireGestao` | Libera para `gestor` e `gerente`. O recorte por equipe do gerente é aplicado no controller via `utils/scope.ts`. |
+| `requireParceriaScope` | Só libera a parceria se todos os membros estiverem no escopo do usuário. |
 | `requireOwnerOrGestor` | Permite acesso se o usuário for `gestor` ou o dono do recurso (broker_id === userId). |
 | `errorHandler` | Tratamento global de erros. Retorna resposta padronizada com status 500. |
 
@@ -250,7 +252,10 @@ Base URL: `/api/v1`
 | Role | Descrição | Permissões |
 |------|-----------|------------|
 | `corretor` | Corretor de imóveis (role padrão) | Visualizar e editar seus próprios dados, ver dashboard individual |
-| `gestor` | Gestor da equipe | Tudo que o corretor pode + definir metas, ver ranking, gerenciar usuários, ver relatórios, adicionar comentários |
+| `gerente` | Líder de equipe | Produz como corretor (entra em consolidados, ranking e ROI) **e** gerencia a equipe: painel geral, ranking, ROI, relatórios, metas, comentários, planos de ação, mapas e lançamentos — tudo **restrito a quem tem o mesmo `team`**, ele incluído. Não gerencia usuários nem parcerias. |
+| `gestor` | Diretor | Tudo, sem recorte de equipe + gerenciar usuários e parcerias |
+
+> O escopo do gerente sai de `profiles.team`: ele enxerga os corretores e gerentes **ativos** cujo `team` é exatamente igual ao dele — inclusive ele mesmo. Parceria que tenha algum membro de outra equipe fica invisível para ele — senão viraria um atalho para os números de fora. Toda a lógica está em `src/utils/scope.ts`, onde `null` significa "sem restrição" e um array significa "somente estes broker_ids".
 
 ---
 
@@ -292,6 +297,7 @@ As migrations ficam em `src/database/migrations/` e devem ser executadas no **Su
 | 010 | `updated_at_trigger.sql` | Trigger para atualizar `updated_at` |
 | 011 | `create_profile_trigger.sql` | Trigger para criar perfil ao registrar usuário |
 | 012 | `add_must_change_password.sql` | Coluna `must_change_password` em profiles |
+| 013 | `add_gerente_role.sql` | Adiciona o valor `gerente` ao enum `user_role` |
 
 Alternativamente, execute `all_migrations.sql` para rodar todas de uma vez.
 

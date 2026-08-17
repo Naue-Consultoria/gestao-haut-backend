@@ -1,7 +1,11 @@
 import { supabaseAdmin } from '../config/supabase';
 import { profilesService } from './profiles.service';
 import { parceriasService } from './parcerias.service';
+import { filterByScope } from '../utils/scope';
 import { RoiEntry } from '../types/api';
+
+// Convenção de escopo em todos os métodos abaixo: `scope === null` = sem
+// restrição (diretor); um array = somente estes broker_ids (gerente da equipe).
 
 // Helper: aggregate activity data for multiple broker IDs (optimized: 5 queries total using .in())
 async function aggregateBrokerData(brokerIds: string[], month: number, year: number) {
@@ -82,9 +86,16 @@ async function aggregateYearlyVGV(brokerIds: string[], year: number, upToMonth: 
 
 export class DashboardService {
   // Build a map: brokerId -> parceriaId (for active parcerias only)
-  private async buildParceriaMap(): Promise<{ parceriaMap: Map<string, string>; parcerias: any[] }> {
+  private async buildParceriaMap(scope: string[] | null = null): Promise<{ parceriaMap: Map<string, string>; parcerias: any[] }> {
     const rawParcerias = await parceriasService.getActive();
-    const parcerias: any[] = rawParcerias as any[];
+    // Parceria que cruza a fronteira do escopo (algum membro de outra equipe) é
+    // descartada: seus membros entram como corretores solo, senão o gerente veria
+    // o VGV agregado de alguém de fora da equipe dele.
+    const parcerias: any[] = (rawParcerias as any[]).filter(p => {
+      if (scope === null) return true;
+      const membros = p.parceria_membros || [];
+      return membros.length > 0 && membros.every((m: any) => scope.includes(m.broker_id));
+    });
     const parceriaMap = new Map<string, string>();
     for (const p of parcerias) {
       for (const m of (p.parceria_membros || [])) {
@@ -94,9 +105,9 @@ export class DashboardService {
     return { parceriaMap, parcerias };
   }
 
-  async getConsolidated(month: number, year: number) {
-    const brokers = await profilesService.getBrokers();
-    const { parceriaMap, parcerias } = await this.buildParceriaMap();
+  async getConsolidated(month: number, year: number, scope: string[] | null = null) {
+    const brokers = filterByScope(await profilesService.getBrokers(), scope);
+    const { parceriaMap, parcerias } = await this.buildParceriaMap(scope);
 
     let totalVGV = 0;
     let totalCaptacoes = 0;
@@ -216,9 +227,21 @@ export class DashboardService {
     };
   }
 
-  async getIndividual(brokerId: string, month: number, year: number) {
-    // Check if broker is in a partnership
+  /**
+   * Parceria ativa do corretor, ou null se ela atravessar a fronteira do escopo.
+   * Nesse caso o corretor é agregado sozinho, para não expor os números de um
+   * parceiro de outra equipe.
+   */
+  private async scopedParceria(brokerId: string, scope: string[] | null): Promise<any | null> {
     const parceria = await parceriasService.getByBrokerId(brokerId);
+    if (!parceria || scope === null) return parceria;
+    const memberIds = (parceria.parceria_membros || []).map((m: any) => m.broker_id);
+    return memberIds.every((id: string) => scope.includes(id)) ? parceria : null;
+  }
+
+  async getIndividual(brokerId: string, month: number, year: number, scope: string[] | null = null) {
+    // Check if broker is in a partnership
+    const parceria = await this.scopedParceria(brokerId, scope);
 
     if (parceria) {
       // Partnership mode: aggregate all members - optimized: parallel queries
@@ -316,47 +339,54 @@ export class DashboardService {
     };
   }
 
-  async getConsolidatedEvolution(year: number) {
-    const { data: metas } = await supabaseAdmin
+  async getConsolidatedEvolution(year: number, scope: string[] | null = null) {
+    // Metas individuais de quem está em parceria são ignoradas: a parceria tem meta própria.
+    const { parceriaMap } = await this.buildParceriaMap(scope);
+
+    let metasQ = supabaseAdmin
       .from('metas')
-      .select('month, vgv_mensal')
+      .select('month, vgv_mensal, broker_id')
       .eq('year', year);
-
-    const { data: metasParceria } = await supabaseAdmin
-      .from('metas_parceria')
-      .select('month, vgv_mensal')
-      .eq('year', year);
-
-    const { data: positivacoes } = await supabaseAdmin
+    let positivacoesQ = supabaseAdmin
       .from('positivacoes')
       .select('month, vgv')
       .eq('year', year);
 
-    // We need to exclude individual metas for brokers who are in partnerships
-    const { parceriaMap } = await this.buildParceriaMap();
+    if (scope !== null) {
+      metasQ = metasQ.in('broker_id', scope);
+      positivacoesQ = positivacoesQ.in('broker_id', scope);
+    }
+
+    // Fora do escopo restrito, as metas de parceria entram todas (comportamento
+    // histórico do painel do diretor). No escopo do gerente, só as parcerias
+    // que ficaram inteiras dentro da equipe.
+    const parceriaIds = Array.from(new Set(parceriaMap.values()));
+    const metasParceriaQ = scope === null
+      ? supabaseAdmin.from('metas_parceria').select('month, vgv_mensal').eq('year', year)
+      : parceriaIds.length > 0
+        ? supabaseAdmin.from('metas_parceria').select('month, vgv_mensal').eq('year', year).in('parceria_id', parceriaIds)
+        : Promise.resolve({ data: [] as { month: number; vgv_mensal: number }[] });
+
+    const [metasResult, positivacoesResult, metasParceriaResult] = await Promise.all([
+      metasQ,
+      positivacoesQ,
+      metasParceriaQ,
+    ]);
 
     const metaMap = new Map<number, number>();
 
-    // Add partnership metas
-    for (const m of metasParceria || []) {
+    for (const m of metasParceriaResult.data || []) {
       metaMap.set(m.month, (metaMap.get(m.month) || 0) + (Number(m.vgv_mensal) || 0));
     }
 
-    // Add solo broker metas (skip those in partnerships)
-    // We need broker_id to filter - fetch with broker_id
-    const { data: metasWithBroker } = await supabaseAdmin
-      .from('metas')
-      .select('month, vgv_mensal, broker_id')
-      .eq('year', year);
-
-    for (const m of metasWithBroker || []) {
+    for (const m of metasResult.data || []) {
       if (!parceriaMap.has(m.broker_id)) {
         metaMap.set(m.month, (metaMap.get(m.month) || 0) + (Number(m.vgv_mensal) || 0));
       }
     }
 
     const realizadoMap = new Map<number, number>();
-    for (const p of positivacoes || []) {
+    for (const p of positivacoesResult.data || []) {
       realizadoMap.set(p.month, (realizadoMap.get(p.month) || 0) + Number(p.vgv));
     }
 
@@ -367,9 +397,9 @@ export class DashboardService {
     }));
   }
 
-  async getYearlyEvolution(brokerId: string, year: number) {
+  async getYearlyEvolution(brokerId: string, year: number, scope: string[] | null = null) {
     // Check if broker is in a partnership
-    const parceria = await parceriasService.getByBrokerId(brokerId);
+    const parceria = await this.scopedParceria(brokerId, scope);
 
     if (parceria) {
       const memberIds = (parceria.parceria_membros || []).map((m: any) => m.broker_id);
@@ -460,9 +490,9 @@ export class DashboardService {
     return months;
   }
 
-  async getRanking(month: number, year: number) {
-    const brokers = await profilesService.getBrokers();
-    const { parceriaMap, parcerias } = await this.buildParceriaMap();
+  async getRanking(month: number, year: number, scope: string[] | null = null) {
+    const brokers = filterByScope(await profilesService.getBrokers(), scope);
+    const { parceriaMap, parcerias } = await this.buildParceriaMap(scope);
 
     const processedParcerias = new Set<string>();
     const rankings: any[] = [];
@@ -514,8 +544,8 @@ export class DashboardService {
     return rankings.map((r, i) => ({ ...r, position: i + 1 }));
   }
 
-  async getIndividualYearly(brokerId: string, year: number) {
-    const parceria = await parceriasService.getByBrokerId(brokerId);
+  async getIndividualYearly(brokerId: string, year: number, scope: string[] | null = null) {
+    const parceria = await this.scopedParceria(brokerId, scope);
 
     const reduceMetaTotals = (metas: any[]) => metas.reduce((acc, m) => ({
       vgv_mensal: acc.vgv_mensal + (Number(m.vgv_mensal) || 0),
@@ -590,9 +620,9 @@ export class DashboardService {
       comissaoTotal: activity.comissaoTotal,
     };
   }
-  async getConsolidatedYearly(year: number) {
-    const brokers = await profilesService.getBrokers();
-    const { parceriaMap, parcerias } = await this.buildParceriaMap();
+  async getConsolidatedYearly(year: number, scope: string[] | null = null) {
+    const brokers = filterByScope(await profilesService.getBrokers(), scope);
+    const { parceriaMap, parcerias } = await this.buildParceriaMap(scope);
 
     let totalVGV = 0;
     let totalCaptacoes = 0;
@@ -695,12 +725,13 @@ export class DashboardService {
   // Monetary values are accumulated as integer centavos to avoid IEEE 754
   // floating-point drift on BRL sums, then divided back to decimal at the
   // return boundary (HR-02).
-  private async getRoiEntries(year: number, month?: number): Promise<RoiEntry[]> {
+  private async getRoiEntries(year: number, month?: number, scope: string[] | null = null): Promise<RoiEntry[]> {
     // 3 queries in parallel — getBrokers no longer blocks positivacoes/investimentos.
     // Filtering by valid broker IDs happens in memory after the await.
+    // Receita = comissão do corretor, não o VGV da venda.
     let positivacoesQ = supabaseAdmin
       .from('positivacoes')
-      .select('broker_id, vgv')
+      .select('broker_id, comissao')
       .eq('year', year);
     let investimentosQ = supabaseAdmin
       .from('investimentos')
@@ -713,12 +744,13 @@ export class DashboardService {
       investimentosQ = investimentosQ.eq('month', month);
     }
 
-    const [brokers, positivacoesResult, investimentosResult] = await Promise.all([
-      profilesService.getBrokers(), // role='corretor' AND active=true
+    const [allBrokers, positivacoesResult, investimentosResult] = await Promise.all([
+      profilesService.getBrokers(), // corretores e gerentes ativos (quem produz)
       positivacoesQ,
       investimentosQ,
     ]);
 
+    const brokers = filterByScope(allBrokers, scope);
     if (brokers.length === 0) return [];
     if (positivacoesResult.error) throw new Error(positivacoesResult.error.message);
     if (investimentosResult.error) throw new Error(investimentosResult.error.message);
@@ -732,7 +764,7 @@ export class DashboardService {
       if (!validBrokerIds.has(p.broker_id)) continue;
       receitaCentsByBroker.set(
         p.broker_id,
-        (receitaCentsByBroker.get(p.broker_id) ?? 0) + Math.round(Number(p.vgv ?? 0) * 100),
+        (receitaCentsByBroker.get(p.broker_id) ?? 0) + Math.round(Number(p.comissao ?? 0) * 100),
       );
     }
 
@@ -777,12 +809,12 @@ export class DashboardService {
     return entries;
   }
 
-  async getRoi(month: number, year: number): Promise<RoiEntry[]> {
-    return this.getRoiEntries(year, month);
+  async getRoi(month: number, year: number, scope: string[] | null = null): Promise<RoiEntry[]> {
+    return this.getRoiEntries(year, month, scope);
   }
 
-  async getRoiYearly(year: number): Promise<RoiEntry[]> {
-    return this.getRoiEntries(year);
+  async getRoiYearly(year: number, scope: string[] | null = null): Promise<RoiEntry[]> {
+    return this.getRoiEntries(year, undefined, scope);
   }
 }
 

@@ -1,4 +1,7 @@
-export type UserRole = 'corretor' | 'gestor';
+// gestor = diretor, enxerga a empresa toda.
+// gerente = líder de equipe, enxerga e gerencia apenas os corretores do próprio `team`.
+// corretor = enxerga apenas os próprios dados (e os da parceria, quando houver).
+export type UserRole = 'corretor' | 'gestor' | 'gerente';
 export type OrigemType = 'RELACIONAMENTO' | 'PATROCINADO' | 'CORRETOR_EXTERNO' | 'CORRETOR_INTERNO' | 'PORTAL' | 'PLANTAO_HAUT' | 'GRUPO_CORRETORES_WHATSAPP' | 'CLIENTE_DE_CARTEIRA' | 'PROSPECCAO_ATIVA' | 'SITE_HAUT';
 export type InvestimentoType = 'PORTAL' | 'PATROCINADO' | 'CURSO' | 'NETWORKING' | 'PRESENTE_CLIENTE' | 'BRINDE' | 'OUTRO';
 

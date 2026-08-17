@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../config/supabase';
 import { profilesService } from './profiles.service';
+import { filterByScope } from '../utils/scope';
 import { MapaAmbicao, MapaAmbicaoSummary } from '../types/api';
 
 export class MapaAmbicaoService {
@@ -39,12 +40,12 @@ export class MapaAmbicaoService {
     return data as MapaAmbicao;
   }
 
-  async listAllWithProfiles(): Promise<MapaAmbicaoSummary[]> {
-    // getBrokers() returns active corretores only. Deactivated corretores' mapas
+  async listAllWithProfiles(scope: string[] | null = null): Promise<MapaAmbicaoSummary[]> {
+    // getBrokers() returns active corretores and gerentes. Deactivated corretores' mapas
     // are intentionally excluded from this list — the gestor list shows the current
     // active team. Historical mapas of deactivated corretores remain in the DB and
     // are still accessible via getAsGestor(brokerId) for individual lookup.
-    const brokers = await profilesService.getBrokers();
+    const brokers = filterByScope(await profilesService.getBrokers(), scope);
 
     const { data: mapas, error } = await supabaseAdmin
       .from('mapas_ambicao')

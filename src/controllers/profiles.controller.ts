@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../config/supabase';
 import { env } from '../config/env';
 import { registerSchema, profileUpdateSchema, resetPasswordSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
+import { filterByScope, managedBrokerIds } from '../utils/scope';
 
 export class ProfilesController {
   async getAll(_req: AuthenticatedRequest, res: Response) {
@@ -17,9 +18,11 @@ export class ProfilesController {
     }
   }
 
-  async getBrokers(_req: AuthenticatedRequest, res: Response) {
+  async getBrokers(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await profilesService.getBrokers();
+      // Alimenta todos os seletores de corretor do frontend — é aqui que o gerente
+      // deixa de enxergar quem é de outra equipe.
+      const data = filterByScope(await profilesService.getBrokers(), await managedBrokerIds(req));
       sendSuccess(res, data);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);

@@ -40,19 +40,8 @@ export class NegociosService {
     return data;
   }
 
-  async updateByBroker(id: string, brokerId: string, record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
-    const { data, error } = await supabaseAdmin
-      .from('negocios')
-      .update(record)
-      .eq('id', id)
-      .eq('broker_id', brokerId)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  }
 
-  async updateByPartner(id: string, brokerIds: string[], record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
+  async updateScoped(id: string, brokerIds: string[], record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .update(record)
@@ -72,16 +61,8 @@ export class NegociosService {
     if (error) throw new Error(error.message);
   }
 
-  async delete(id: string, brokerId: string) {
-    const { error } = await supabaseAdmin
-      .from('negocios')
-      .delete()
-      .eq('id', id)
-      .eq('broker_id', brokerId);
-    if (error) throw new Error(error.message);
-  }
 
-  async deleteByPartner(id: string, brokerIds: string[]) {
+  async deleteScoped(id: string, brokerIds: string[]) {
     const { error } = await supabaseAdmin
       .from('negocios')
       .delete()

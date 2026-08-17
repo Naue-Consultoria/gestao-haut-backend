@@ -10,7 +10,7 @@ export const registerSchema = z.object({
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
   name: z.string().min(1, 'Nome é obrigatório'),
   team: z.string().min(1, 'Equipe é obrigatória'),
-  role: z.enum(['corretor', 'gestor']).default('corretor'),
+  role: z.enum(['corretor', 'gestor', 'gerente']).default('corretor'),
 });
 
 export const changePasswordSchema = z.object({
@@ -25,7 +25,7 @@ export const profileUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   team: z.string().optional(),
-  role: z.enum(['corretor', 'gestor']).optional(),
+  role: z.enum(['corretor', 'gestor', 'gerente']).optional(),
   active: z.boolean().optional(),
 });
 

@@ -40,19 +40,8 @@ export class TreinamentosService {
     return data;
   }
 
-  async updateByBroker(id: string, brokerId: string, record: { atividade?: string; local?: string; horas?: number }) {
-    const { data, error } = await supabaseAdmin
-      .from('treinamentos')
-      .update(record)
-      .eq('id', id)
-      .eq('broker_id', brokerId)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  }
 
-  async updateByPartner(id: string, brokerIds: string[], record: { atividade?: string; local?: string; horas?: number }) {
+  async updateScoped(id: string, brokerIds: string[], record: { atividade?: string; local?: string; horas?: number }) {
     const { data, error } = await supabaseAdmin
       .from('treinamentos')
       .update(record)
@@ -72,16 +61,8 @@ export class TreinamentosService {
     if (error) throw new Error(error.message);
   }
 
-  async delete(id: string, brokerId: string) {
-    const { error } = await supabaseAdmin
-      .from('treinamentos')
-      .delete()
-      .eq('id', id)
-      .eq('broker_id', brokerId);
-    if (error) throw new Error(error.message);
-  }
 
-  async deleteByPartner(id: string, brokerIds: string[]) {
+  async deleteScoped(id: string, brokerIds: string[]) {
     const { error } = await supabaseAdmin
       .from('treinamentos')
       .delete()

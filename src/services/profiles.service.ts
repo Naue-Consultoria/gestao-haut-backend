@@ -11,11 +11,16 @@ export class ProfilesService {
     return data;
   }
 
+  /**
+   * Quem produz: corretores e gerentes. O gerente vende além de gerenciar, então
+   * entra nos consolidados, no ranking e no ROI como qualquer outro produtor.
+   * O gestor (diretor) fica de fora — ele só acompanha.
+   */
   async getBrokers() {
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
-      .eq('role', 'corretor')
+      .in('role', ['corretor', 'gerente'])
       .eq('active', true)
       .order('name');
     if (error) throw new Error(error.message);

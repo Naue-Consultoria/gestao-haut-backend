@@ -4,10 +4,15 @@ import { comentariosService } from '../services/comentarios.service';
 import { comentarioSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 import { getCurrentYear } from '../utils/helpers';
+import { canManageBroker, managedBrokerIds } from '../utils/scope';
 
 export class ComentariosController {
   async getByBroker(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const data = await comentariosService.getByBroker(req.params.brokerId);
       sendSuccess(res, data);
     } catch (err: unknown) {
@@ -17,6 +22,10 @@ export class ComentariosController {
 
   async getByBrokerAndMonth(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const month = parseInt(req.params.month, 10);
       const year = parseInt(req.query.year as string) || getCurrentYear();
       const data = await comentariosService.getByBrokerAndMonth(req.params.brokerId, month, year);
@@ -28,6 +37,10 @@ export class ComentariosController {
 
   async upsert(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const body = comentarioSchema.parse(req.body);
       const month = parseInt(req.params.month, 10);
       const year = parseInt(req.query.year as string) || getCurrentYear();
@@ -37,9 +50,15 @@ export class ComentariosController {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
     }
   }
+
   async delete(req: AuthenticatedRequest, res: Response) {
     try {
-      await comentariosService.delete(req.params.id);
+      const scope = await managedBrokerIds(req);
+      if (scope === null) {
+        await comentariosService.delete(req.params.id);
+      } else {
+        await comentariosService.deleteScoped(req.params.id, scope);
+      }
       sendSuccess(res, null);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);

@@ -1,8 +1,11 @@
 import { Request } from 'express';
+import { UserRole } from './index';
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
-  userRole?: 'corretor' | 'gestor';
+  userRole?: UserRole;
+  /** Equipe do usuário — base do escopo do gerente. */
+  userTeam?: string;
   accessToken?: string;
 }
 
@@ -16,7 +19,7 @@ export interface RegisterDTO {
   password: string;
   name: string;
   team: string;
-  role: 'corretor' | 'gestor';
+  role: UserRole;
 }
 
 export interface ApiResponse<T = unknown> {
@@ -88,6 +91,7 @@ export interface RankingItem {
 export type RoiEntry = {
   brokerId: string;
   brokerName: string;
+  /** Comissão do corretor no período — não o VGV da venda. */
   receita: number;
   investimento: number;
   roi: number | null;

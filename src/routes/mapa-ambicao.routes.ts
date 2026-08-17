@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { mapaAmbicaoController } from '../controllers/mapa-ambicao.controller';
 import { authMiddleware } from '../middleware/auth';
-import { requireGestor } from '../middleware/roleGuard';
+import { requireGestao } from '../middleware/roleGuard';
 
 export const mapaAmbicaoRouter = Router();
 mapaAmbicaoRouter.use(authMiddleware);
@@ -10,6 +10,6 @@ mapaAmbicaoRouter.put('/', (req, res) => mapaAmbicaoController.upsertMine(req, r
 
 export const mapasAmbicaoRouter = Router();
 mapasAmbicaoRouter.use(authMiddleware);
-mapasAmbicaoRouter.use(requireGestor);
+mapasAmbicaoRouter.use(requireGestao);
 mapasAmbicaoRouter.get('/', (req, res) => mapaAmbicaoController.listForGestor(req, res));
 mapasAmbicaoRouter.get('/:brokerId', (req, res) => mapaAmbicaoController.getOneForGestor(req, res));

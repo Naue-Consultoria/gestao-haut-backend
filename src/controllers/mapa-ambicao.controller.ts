@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types/api';
 import { mapaAmbicaoService } from '../services/mapa-ambicao.service';
 import { mapaAmbicaoUpsertSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
+import { gestaoScope, canManageBroker } from '../utils/scope';
 
 export class MapaAmbicaoController {
   async getMine(req: AuthenticatedRequest, res: Response) {
@@ -44,7 +45,7 @@ export class MapaAmbicaoController {
 
   async listForGestor(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await mapaAmbicaoService.listAllWithProfiles();
+      const data = await mapaAmbicaoService.listAllWithProfiles(await gestaoScope(req));
       sendSuccess(res, data);
     } catch (err: unknown) {
       console.error('[MapaAmbicao] listForGestor error:', (err as Error).message);
@@ -57,6 +58,10 @@ export class MapaAmbicaoController {
       const brokerIdParam = z.string().uuid('brokerId deve ser UUID válido').safeParse(req.params.brokerId);
       if (!brokerIdParam.success) {
         sendError(res, brokerIdParam.error.errors[0].message, 400);
+        return;
+      }
+      if (!(await canManageBroker(req, brokerIdParam.data))) {
+        sendError(res, 'Acesso negado', 403);
         return;
       }
       const mapa = await mapaAmbicaoService.getAsGestor(brokerIdParam.data);

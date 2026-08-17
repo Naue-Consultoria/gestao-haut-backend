@@ -3,11 +3,13 @@ import { AuthenticatedRequest } from '../types/api';
 import { parceriasService } from '../services/parcerias.service';
 import { metaSchema, comentarioSchema, planoAcaoSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError, getCurrentYear } from '../utils/helpers';
+import { canManageBroker, managedBrokerIds } from '../utils/scope';
+import { filterParceriasByScope } from '../middleware/parceriaScope';
 
 export class ParceriasController {
   async getAll(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await parceriasService.getAll();
+      const data = filterParceriasByScope(await parceriasService.getAll(), await managedBrokerIds(req));
       sendSuccess(res, data);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);
@@ -16,7 +18,7 @@ export class ParceriasController {
 
   async getActive(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await parceriasService.getActive();
+      const data = filterParceriasByScope(await parceriasService.getActive(), await managedBrokerIds(req));
       sendSuccess(res, data);
     } catch (err: unknown) {
       sendError(res, (err as Error).message, 500);
@@ -34,6 +36,10 @@ export class ParceriasController {
 
   async getByBrokerId(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const data = await parceriasService.getByBrokerId(req.params.brokerId);
       sendSuccess(res, data);
     } catch (err: unknown) {

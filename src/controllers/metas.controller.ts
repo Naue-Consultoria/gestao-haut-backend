@@ -4,10 +4,15 @@ import { metasService } from '../services/metas.service';
 import { metaSchema } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
 import { getCurrentYear } from '../utils/helpers';
+import { canManageBroker } from '../utils/scope';
 
 export class MetasController {
   async getByBroker(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const data = await metasService.getByBroker(req.params.brokerId);
       sendSuccess(res, data);
     } catch (err: unknown) {
@@ -17,6 +22,10 @@ export class MetasController {
 
   async getByBrokerAndMonth(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const month = parseInt(req.params.month, 10);
       const year = parseInt(req.query.year as string) || getCurrentYear();
       const data = await metasService.getByBrokerAndMonth(req.params.brokerId, month, year);
@@ -28,6 +37,10 @@ export class MetasController {
 
   async upsert(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const metaData = metaSchema.parse(req.body);
       const month = parseInt(req.params.month, 10);
       const year = parseInt(req.query.year as string) || getCurrentYear();
@@ -40,6 +53,10 @@ export class MetasController {
 
   async bulkUpsertVgv(req: AuthenticatedRequest, res: Response) {
     try {
+      if (!(await canManageBroker(req, req.params.brokerId))) {
+        sendError(res, 'Acesso negado', 403);
+        return;
+      }
       const { vgv_anual } = req.body;
       const year = parseInt(req.query.year as string) || getCurrentYear();
       const vgvAnual = Number(vgv_anual) || 0;

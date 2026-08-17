@@ -9,7 +9,7 @@ export interface Database {
           name: string;
           email: string;
           team: string;
-          role: 'corretor' | 'gestor';
+          role: 'corretor' | 'gestor' | 'gerente';
           active: boolean;
           created_at: string;
         };
@@ -18,14 +18,14 @@ export interface Database {
           name: string;
           email: string;
           team: string;
-          role?: 'corretor' | 'gestor';
+          role?: 'corretor' | 'gestor' | 'gerente';
           active?: boolean;
         };
         Update: {
           name?: string;
           email?: string;
           team?: string;
-          role?: 'corretor' | 'gestor';
+          role?: 'corretor' | 'gestor' | 'gerente';
           active?: boolean;
         };
       };

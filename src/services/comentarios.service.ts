@@ -44,6 +44,16 @@ export class ComentariosService {
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
+
+  /** Exclui apenas se o comentário for de um corretor dentro do escopo informado. */
+  async deleteScoped(id: string, brokerIds: string[]) {
+    const { error } = await supabaseAdmin
+      .from('comentarios')
+      .delete()
+      .eq('id', id)
+      .in('broker_id', brokerIds);
+    if (error) throw new Error(error.message);
+  }
 }
 
 export const comentariosService = new ComentariosService();

@@ -1,26 +1,20 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/api';
 import { investimentosService } from '../services/investimentos.service';
-import { parceriasService } from '../services/parcerias.service';
 import { investimentoSchema, investimentoUpdateSchema, monthYearQuery } from '../utils/validation';
 import { sendSuccess, sendError, handleValidationError } from '../utils/helpers';
-
-async function getPartnerIds(userId: string): Promise<string[] | null> {
-  const parceria = await parceriasService.getByBrokerId(userId);
-  if (!parceria) return null;
-  return (parceria.parceria_membros || []).map((m: any) => m.broker_id);
-}
+import { canManageBroker, canCreateForBroker, managedBrokerIds, scopedPartnerIds } from '../utils/scope';
 
 export class InvestimentosController {
   async list(req: AuthenticatedRequest, res: Response) {
     try {
       const query = monthYearQuery.parse(req.query);
       const brokerId = (query.brokerId || req.userId)!;
-      if (req.userRole !== 'gestor' && brokerId !== req.userId) {
+      if (!(await canManageBroker(req, brokerId))) {
         sendError(res, 'Acesso negado', 403);
         return;
       }
-      const partnerIds = await getPartnerIds(brokerId);
+      const partnerIds = await scopedPartnerIds(req, brokerId);
       const data = partnerIds
         ? await investimentosService.listMultiple(partnerIds, query.month, query.year)
         : await investimentosService.list(brokerId, query.month, query.year);
@@ -34,7 +28,9 @@ export class InvestimentosController {
     try {
       const body = investimentoSchema.parse(req.body);
       const { broker_id, ...record } = body;
-      const targetBrokerId = (req.userRole === 'gestor' && broker_id) ? broker_id : req.userId!;
+      // Gestor e gerente podem lançar em nome de um corretor do seu escopo;
+      // nos demais casos o registro fica no próprio usuário.
+      const targetBrokerId = broker_id && (await canCreateForBroker(req, broker_id)) ? broker_id : req.userId!;
       const data = await investimentosService.create(targetBrokerId, record);
       sendSuccess(res, data, 201);
     } catch (err: unknown) {
@@ -45,17 +41,10 @@ export class InvestimentosController {
   async update(req: AuthenticatedRequest, res: Response) {
     try {
       const record = investimentoUpdateSchema.parse(req.body);
-      let data;
-      if (req.userRole === 'gestor') {
-        data = await investimentosService.update(req.params.id, record);
-      } else {
-        const partnerIds = await getPartnerIds(req.userId!);
-        if (partnerIds) {
-          data = await investimentosService.updateByPartner(req.params.id, partnerIds, record);
-        } else {
-          data = await investimentosService.updateByBroker(req.params.id, req.userId!, record);
-        }
-      }
+      const scope = await managedBrokerIds(req);
+      const data = scope === null
+        ? await investimentosService.update(req.params.id, record)
+        : await investimentosService.updateScoped(req.params.id, scope, record);
       sendSuccess(res, data);
     } catch (err: unknown) {
       try { handleValidationError(res, err); } catch { sendError(res, (err as Error).message, 500); }
@@ -64,15 +53,11 @@ export class InvestimentosController {
 
   async delete(req: AuthenticatedRequest, res: Response) {
     try {
-      if (req.userRole === 'gestor') {
+      const scope = await managedBrokerIds(req);
+      if (scope === null) {
         await investimentosService.deleteById(req.params.id);
       } else {
-        const partnerIds = await getPartnerIds(req.userId!);
-        if (partnerIds) {
-          await investimentosService.deleteByPartner(req.params.id, partnerIds);
-        } else {
-          await investimentosService.delete(req.params.id, req.userId!);
-        }
+        await investimentosService.deleteScoped(req.params.id, scope);
       }
       sendSuccess(res, { message: 'Registro excluído' });
     } catch (err: unknown) {

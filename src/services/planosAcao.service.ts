@@ -48,6 +48,9 @@ export class PlanosAcaoService {
 
   /** Atualiza apenas se o plano for de um corretor dentro do escopo informado. */
   async updateScoped(id: string, brokerIds: string[], data: { texto?: string; prazo?: string; status?: string }) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { data: result, error } = await supabaseAdmin
       .from('planos_acao')
       .update(data)
@@ -69,6 +72,9 @@ export class PlanosAcaoService {
 
   /** Exclui apenas se o plano for de um corretor dentro do escopo informado. */
   async deleteScoped(id: string, brokerIds: string[]) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { error } = await supabaseAdmin
       .from('planos_acao')
       .delete()

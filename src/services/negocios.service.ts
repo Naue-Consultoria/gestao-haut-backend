@@ -42,6 +42,9 @@ export class NegociosService {
 
 
   async updateScoped(id: string, brokerIds: string[], record: { oportunidade?: string; origem?: string; vgv?: number; notas?: string }) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { data, error } = await supabaseAdmin
       .from('negocios')
       .update(record)
@@ -63,6 +66,9 @@ export class NegociosService {
 
 
   async deleteScoped(id: string, brokerIds: string[]) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { error } = await supabaseAdmin
       .from('negocios')
       .delete()

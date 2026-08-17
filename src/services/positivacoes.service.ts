@@ -42,6 +42,9 @@ export class PositivacoesService {
 
 
   async updateScoped(id: string, brokerIds: string[], record: { oportunidade?: string; parceria?: string; vgv?: number; comissao?: number }) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { data, error } = await supabaseAdmin
       .from('positivacoes')
       .update(record)
@@ -63,6 +66,9 @@ export class PositivacoesService {
 
 
   async deleteScoped(id: string, brokerIds: string[]) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     // Try to delete where broker_id is any of the partners
     const { error } = await supabaseAdmin
       .from('positivacoes')

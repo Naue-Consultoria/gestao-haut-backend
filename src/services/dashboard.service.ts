@@ -340,6 +340,13 @@ export class DashboardService {
   }
 
   async getConsolidatedEvolution(year: number, scope: string[] | null = null) {
+    // Escopo vazio (gerente cuja equipe não casa com ninguém) não vira consulta:
+    // `.in('broker_id', [])` geraria `broker_id=in.()`, que o PostgREST pode
+    // recusar. O resultado correto aqui é o gráfico zerado, não um erro.
+    if (scope !== null && scope.length === 0) {
+      return Array.from({ length: 12 }, (_, i) => ({ month: i, meta: 0, realizado: 0 }));
+    }
+
     // Metas individuais de quem está em parceria são ignoradas: a parceria tem meta própria.
     const { parceriaMap } = await this.buildParceriaMap(scope);
 

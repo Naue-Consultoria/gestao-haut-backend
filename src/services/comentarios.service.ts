@@ -47,6 +47,9 @@ export class ComentariosService {
 
   /** Exclui apenas se o comentário for de um corretor dentro do escopo informado. */
   async deleteScoped(id: string, brokerIds: string[]) {
+    // Escopo vazio nunca vira consulta: '.in(col, [])' geraria 'col=in.()',
+    // que o PostgREST pode recusar. Sem ninguém no escopo, não há o que alterar.
+    if (brokerIds.length === 0) throw new Error('Acesso negado');
     const { error } = await supabaseAdmin
       .from('comentarios')
       .delete()
